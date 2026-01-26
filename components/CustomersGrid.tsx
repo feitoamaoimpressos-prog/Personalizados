@@ -1,22 +1,24 @@
 
 import React, { useState } from 'react';
-import { Users, Mail, Phone, UserPlus, Search, Eye, Trash2, X, MapPin, Hash, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Users, User, Mail, Phone, UserPlus, Search, Eye, Trash2, X, MapPin, Hash, CheckCircle2, AlertCircle, Edit3 } from 'lucide-react';
 import { Customer } from '../types';
 
 interface CustomersGridProps {
   customers: Customer[];
   onNewCustomer: () => void;
+  onEditCustomer: (customer: Customer) => void;
   onDeleteCustomer: (id: string) => void;
 }
 
-export const CustomersGrid: React.FC<CustomersGridProps> = ({ customers, onNewCustomer, onDeleteCustomer }) => {
+export const CustomersGrid: React.FC<CustomersGridProps> = ({ customers, onNewCustomer, onEditCustomer, onDeleteCustomer }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.phone.includes(searchTerm)
+    (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    c.phone.includes(searchTerm) ||
+    (c.responsible && c.responsible.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -76,13 +78,13 @@ export const CustomersGrid: React.FC<CustomersGridProps> = ({ customers, onNewCu
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <Mail className="w-3 h-3 text-slate-400" />
-                          {customer.email || '---'}
+                        <div className="flex items-center gap-1.5 text-xs text-slate-700 font-bold">
+                          <User className="w-3 h-3 text-slate-400" />
+                          {customer.responsible || 'Sem resp.'}
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-slate-500">
                           <Phone className="w-3 h-3 text-slate-400" />
-                          {customer.phone || '---'}
+                          {customer.phone || 'Sem tel.'}
                         </div>
                       </div>
                     </td>
@@ -104,6 +106,13 @@ export const CustomersGrid: React.FC<CustomersGridProps> = ({ customers, onNewCu
                           title="Visualizar Cadastro"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); onEditCustomer(customer); }}
+                          className="p-2 bg-orange-50 hover:bg-orange-100 rounded-lg text-orange-600 transition-all border border-orange-100"
+                          title="Editar Cliente"
+                        >
+                          <Edit3 className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); onDeleteCustomer(customer.id); }}
@@ -162,10 +171,10 @@ export const CustomersGrid: React.FC<CustomersGridProps> = ({ customers, onNewCu
                   <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em]">Dados de Contato</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <Mail className="w-4 h-4 text-blue-500" />
+                      <User className="w-4 h-4 text-blue-500" />
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">E-mail</span>
-                        <span className="text-sm font-bold text-slate-700">{selectedCustomer.email || 'Não informado'}</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Responsável</span>
+                        <span className="text-sm font-bold text-slate-700">{selectedCustomer.responsible || 'Não informado'}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -173,6 +182,13 @@ export const CustomersGrid: React.FC<CustomersGridProps> = ({ customers, onNewCu
                       <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Telefone</span>
                         <span className="text-sm font-bold text-slate-700">{selectedCustomer.phone || 'Não informado'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <Mail className="w-4 h-4 text-blue-500" />
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">E-mail</span>
+                        <span className="text-sm font-bold text-slate-700">{selectedCustomer.email || 'Não informado'}</span>
                       </div>
                     </div>
                   </div>

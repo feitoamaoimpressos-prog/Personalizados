@@ -24,8 +24,11 @@ export const PayableBanner: React.FC<PayableBannerProps> = ({ expenses, accounts
   };
 
   const formatDate = (dateStr: string) => {
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
+    if (!dateStr) return '--';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    return `${day}-${month}-${year}`;
   };
 
   const handleAccountChange = (expenseId: string, accountId: string) => {

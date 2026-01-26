@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Header } from './components/Header';
 import { QuickStats } from './components/QuickStats';
 import { ActionBanner } from './components/ActionBanner';
@@ -9,6 +9,7 @@ import { BankAccounts } from './components/BankAccounts';
 import { ProductionGrid } from './components/ProductionGrid';
 import { CustomersGrid } from './components/CustomersGrid';
 import { ProductsGrid } from './components/ProductsGrid';
+import { CategoriesGrid } from './components/CategoriesGrid';
 import { OrdersGrid } from './components/OrdersGrid';
 import { HistoryGrid } from './components/HistoryGrid';
 import { SettingsGrid } from './components/SettingsGrid';
@@ -20,8 +21,8 @@ import { NewTransactionModal } from './components/NewTransactionModal';
 import { NewCustomerModal } from './components/NewCustomerModal';
 import { PdfPrintView } from './components/PdfPrintView';
 import { OrderDetailView } from './components/OrderDetailView';
-import { FinancialStats, BankAccount, ViewType, Product, Order, Expense, Customer, CompanySettings } from './types';
-import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History } from 'lucide-react';
+import { FinancialStats, BankAccount, ViewType, Product, Order, Expense, Customer, CompanySettings, Carrier } from './types';
+import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History, LayoutGrid } from 'lucide-react';
 
 const INITIAL_ACCOUNTS: BankAccount[] = [
   { id: '1', name: 'Caixa Geral', type: 'Caixa', balance: 0.00 },
@@ -34,80 +35,127 @@ const INITIAL_COMPANY: CompanySettings = {
   city: 'Pindamonhangaba - SP',
   phone: '(12) 99239-1458',
   email: 'feitoamao.impressos@gmail.com',
+  website: 'www.feitoamaoimpressos.com.br',
+  instagram: '@feitoamao.impressos',
+  taxId: '62.287.343/0001-36',
+  stateRegistration: 'ISENTO',
   pixKey: '62287343000136',
+  pixKeyType: 'CNPJ',
+  bankName: 'Nubank',
   logo: '',
-  dashboardTitle: 'Dashboard',
-  dashboardSubtitle: 'Gestão de Gráfica Rápida',
+  dashboardTitle: 'Painel de Gestão',
+  dashboardSubtitle: 'Personalizados FEITO A MÃO',
+  dashboardGreeting: 'Olá, Bem-vindo de volta!',
   materials: ['Couchê 250g', 'Couchê 300g', 'Lona 440g', 'Vinil Adesivo', 'Papel Offset 90g'],
-  categories: ['Papelaria', 'Grandes Formatos', 'Brindes', 'Comunicação Visual', 'Outros']
+  categories: ['Papelaria', 'Grandes Formatos', 'Brindes', 'Comunicação Visual', 'Outros'],
+  expenseCategories: ['Fornecedor', 'Aluguel', 'Luz/Água', 'Marketing', 'Manutenção', 'Salários', 'Impostos', 'Outros']
 };
 
 const INITIAL_CUSTOMERS: Customer[] = [
-  {
-    id: '1',
-    name: 'Consumidor Final',
-    email: 'atendimento@exemplo.com',
-    phone: '',
-    totalOrders: 0,
-    status: 'Ativo'
-  }
+  { id: '1', name: 'Consumidor Final', email: 'atendimento@exemplo.com', phone: '', totalOrders: 0, status: 'Ativo' }
 ];
 
-// Helper to get local date string YYYY-MM-DD
 const getLocalDateString = (date: Date = new Date()): string => {
   const pad = (num: number) => (num < 10 ? '0' : '') + num;
-  return date.getFullYear() +
-    '-' + pad(date.getMonth() + 1) +
-    '-' + pad(date.getDate());
+  return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
 };
 
-// Helper to calculate future dates based on frequency
 const getRecurrenceDate = (dateStr: string, frequency: string, index: number): string => {
   const date = new Date(dateStr + 'T12:00:00');
   switch (frequency) {
-    case 'Semanal':
-      date.setDate(date.getDate() + (index * 7));
-      break;
-    case 'Quinzenal':
-      date.setDate(date.getDate() + (index * 15));
-      break;
-    case 'Mensal':
-      date.setMonth(date.getMonth() + index);
-      break;
-    case 'Bimestral':
-      date.setMonth(date.getMonth() + (index * 2));
-      break;
-    case 'Semestral':
-      date.setMonth(date.getMonth() + (index * 6));
-      break;
-    case 'Anual':
-      date.setFullYear(date.getFullYear() + index);
-      break;
-    default:
-      date.setMonth(date.getMonth() + index);
+    case 'Semanal': date.setDate(date.getDate() + (index * 7)); break;
+    case 'Quinzenal': date.setDate(date.getDate() + (index * 15)); break;
+    case 'Mensal': date.setMonth(date.getMonth() + index); break;
+    case 'Bimestral': date.setMonth(date.getMonth() + (index * 2)); break;
+    case 'Semestral': date.setMonth(date.getMonth() + (index * 6)); break;
+    case 'Anual': date.setFullYear(date.getFullYear() + index); break;
+    default: date.setMonth(date.getMonth() + index);
   }
   return getLocalDateString(date);
 };
 
 export default function App() {
-  const [activeView, setActiveView] = useState<ViewType>('producao');
-  const [hideValues, setHideValues] = useState(false);
+  const [activeView, setActiveView] = useState<ViewType>(() => (localStorage.getItem('activeView') as ViewType) || 'producao');
+  const [hideValues, setHideValues] = useState(() => localStorage.getItem('hideValues') === 'true');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   
   const now = new Date();
   const firstDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
   const lastDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   
-  const [dateRange, setDateRange] = useState({ start: firstDay, end: lastDay });
+  const [dateRange, setDateRange] = useState(() => {
+    const saved = localStorage.getItem('dateRange');
+    return saved ? JSON.parse(saved) : { start: firstDay, end: lastDay };
+  });
   
-  // Data States
-  const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [accounts, setAccounts] = useState<BankAccount[]>(INITIAL_ACCOUNTS);
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
-  const [companySettings, setCompanySettings] = useState<CompanySettings>(INITIAL_COMPANY);
-  
-  // Modal States
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('products');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  const [orders, setOrders] = useState<Order[]>(() => {
+    try {
+      const saved = localStorage.getItem('orders');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    try {
+      const saved = localStorage.getItem('expenses');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  const [accounts, setAccounts] = useState<BankAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem('accounts');
+      return saved ? JSON.parse(saved) : INITIAL_ACCOUNTS;
+    } catch { return INITIAL_ACCOUNTS; }
+  });
+
+  const [customers, setCustomers] = useState<Customer[]>(() => {
+    try {
+      const saved = localStorage.getItem('customers');
+      return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
+    } catch { return INITIAL_CUSTOMERS; }
+  });
+
+  const [companySettings, setCompanySettings] = useState<CompanySettings>(() => {
+    try {
+      const saved = localStorage.getItem('companySettings');
+      return saved ? JSON.parse(saved) : INITIAL_COMPANY;
+    } catch { return INITIAL_COMPANY; }
+  });
+
+  const [carriers, setCarriers] = useState<Carrier[]>(() => {
+    try {
+      const saved = localStorage.getItem('carriers');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  // Efeito de persistência automática global
+  useEffect(() => { 
+    try {
+      localStorage.setItem('products', JSON.stringify(products)); 
+      localStorage.setItem('orders', JSON.stringify(orders));
+      localStorage.setItem('expenses', JSON.stringify(expenses));
+      localStorage.setItem('accounts', JSON.stringify(accounts));
+      localStorage.setItem('customers', JSON.stringify(customers));
+      localStorage.setItem('companySettings', JSON.stringify(companySettings));
+      localStorage.setItem('carriers', JSON.stringify(carriers));
+      localStorage.setItem('activeView', activeView);
+      localStorage.setItem('dateRange', JSON.stringify(dateRange));
+      localStorage.setItem('hideValues', String(hideValues));
+      setLastSaved(new Date());
+    } catch (e) {
+      console.error("Erro crítico ao salvar dados:", e);
+    }
+  }, [products, orders, expenses, accounts, customers, companySettings, carriers, activeView, dateRange, hideValues]);
+
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
@@ -116,138 +164,120 @@ export default function App() {
   const [isNewTransactionModalOpen, setIsNewTransactionModalOpen] = useState(false);
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+  const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
-  const STAGES = [
-    'Pedido em aberto',
-    'Criando arte',
-    'Pedido em produção',
-    'Pedido em transporte',
-    'Pedido entregue'
-  ] as const;
+  const handleExportData = () => {
+    const fullData = { products, orders, expenses, accounts, customers, companySettings, carriers };
+    const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `backup_feito_a_mao_${getLocalDateString()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
-  const filteredExpensesForPeriod = useMemo(() => {
-    return expenses.filter(exp => exp.dueDate >= dateRange.start && exp.dueDate <= dateRange.end);
-  }, [expenses, dateRange]);
+  const handleImportData = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.products) setProducts(data.products);
+        if (data.orders) setOrders(data.orders);
+        if (data.expenses) setExpenses(data.expenses);
+        if (data.accounts) setAccounts(data.accounts);
+        if (data.customers) setCustomers(data.customers);
+        if (data.companySettings) setCompanySettings(data.companySettings);
+        if (data.carriers) setCarriers(data.carriers);
+        alert('Backup restaurado com sucesso!');
+      } catch (error) {
+        alert('Erro ao processar arquivo de backup.');
+      }
+    };
+    reader.readAsText(file);
+  };
 
-  const filteredOrdersForPeriod = useMemo(() => {
-    return orders.filter(order => order.date && order.date >= dateRange.start && order.date <= dateRange.end);
-  }, [orders, dateRange]);
+  const handleClearData = (type: 'orders' | 'financeiro' | 'all') => {
+    if (!window.confirm('Atenção: Esta ação é irreversível. Deseja realmente excluir os dados selecionados?')) return;
+    
+    if (type === 'orders') {
+      setOrders([]);
+      alert('Todos os pedidos foram removidos.');
+    } else if (type === 'financeiro') {
+      setExpenses([]);
+      setAccounts(INITIAL_ACCOUNTS);
+      alert('Dados financeiros e saldos foram resetados.');
+    } else if (type === 'all') {
+      setOrders([]);
+      setExpenses([]);
+      setCustomers(INITIAL_CUSTOMERS);
+      setProducts([]);
+      setAccounts(INITIAL_ACCOUNTS);
+      alert('O sistema foi limpo completamente.');
+    }
+  };
+
+  const STAGES = ['Pedido em aberto', 'Criando arte', 'Pedido em produção', 'Pedido em transporte', 'Pedido entregue'] as const;
+
+  const filteredExpensesForPeriod = useMemo(() => expenses.filter(exp => exp.dueDate >= dateRange.start && exp.dueDate <= dateRange.end), [expenses, dateRange]);
+  const filteredOrdersForPeriod = useMemo(() => orders.filter(order => order.date && order.date >= dateRange.start && order.date <= dateRange.end), [orders, dateRange]);
 
   const calculatedStats = useMemo((): FinancialStats => {
     const todayStr = getLocalDateString();
-    
     const receberHoje = orders.filter(o => o.date === todayStr && o.remaining > 0).reduce((acc, o) => acc + o.remaining, 0);
     const pagarHoje = expenses.filter(e => e.dueDate === todayStr && e.status === 'Pendente').reduce((acc, e) => acc + e.value, 0);
-    
-    const totalPedidosPeriodo = filteredOrdersForPeriod
-      .filter(o => o.productionStatus !== 'Apenas Financeiro')
-      .reduce((acc, o) => acc + o.value, 0);
-    
+    const totalPedidosPeriodo = filteredOrdersForPeriod.filter(o => o.productionStatus !== 'Apenas Financeiro').reduce((acc, o) => acc + o.value, 0);
     const totalReceberPeriodo = filteredOrdersForPeriod.reduce((acc, o) => acc + o.remaining, 0);
-    
+    const totalReceberGeral = orders.reduce((acc, o) => acc + o.remaining, 0);
     const receitas = filteredOrdersForPeriod.reduce((acc, o) => acc + o.paid, 0);
-    
     const despesas = filteredExpensesForPeriod.filter(e => e.status === 'Pago').reduce((acc, e) => acc + e.value, 0);
-    
-    return { 
-      receberHoje, 
-      pagarHoje, 
-      totalPedidosPeriodo, 
-      totalReceberPeriodo, 
-      receitas, 
-      despesas, 
-      lucro: receitas - despesas, 
-      transacoesReceitas: filteredOrdersForPeriod.length, 
-      transacoesDespesas: filteredExpensesForPeriod.length 
-    };
+    return { receberHoje, pagarHoje, totalPedidosPeriodo, totalReceberPeriodo, totalReceberGeral, receitas, despesas, lucro: receitas - despesas, transacoesReceitas: filteredOrdersForPeriod.filter(o => o.paid > 0).length, transacoesDespesas: filteredExpensesForPeriod.filter(e => e.status === 'Pago').length };
   }, [filteredOrdersForPeriod, filteredExpensesForPeriod, orders, expenses]);
 
   const handleSaveCustomer = (customerData: any) => {
-    const newCustomer: Customer = {
-      id: Math.random().toString(36).substr(2, 9),
-      totalOrders: 0,
-      status: 'Ativo',
-      ...customerData
-    };
-    setCustomers(prev => [newCustomer, ...prev]);
-    setIsNewCustomerModalOpen(false);
-  };
-
-  const handleDeleteCustomer = (id: string) => {
-    if (window.confirm('Excluir este cliente permanentemente?')) {
-      setCustomers(prev => prev.filter(c => c.id !== id));
+    if (customerToEdit) {
+      setCustomers(prev => prev.map(c => c.id === customerToEdit.id ? { ...c, ...customerData } : c).sort((a, b) => a.name.localeCompare(b.name)));
+    } else {
+      const newCustomer: Customer = { id: Math.random().toString(36).substr(2, 9), totalOrders: 0, status: 'Ativo', ...customerData };
+      setCustomers(prev => [newCustomer, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
     }
+    setIsNewCustomerModalOpen(false);
+    setCustomerToEdit(null);
   };
 
   const handleSaveOrder = (orderData: any) => {
     const installments = orderData.installments || 1;
-    const baseId = Math.floor(100000 + Math.random() * 900000).toString();
+    const baseId = orderToEdit ? orderToEdit.id : Math.floor(100000 + Math.random() * 900000).toString();
     const currentDate = orderData.date || getLocalDateString();
     const firstPayDate = orderData.firstPaymentDate || currentDate;
 
     if (orderToEdit) {
       setOrders(prev => prev.map(o => o.id === orderToEdit.id ? { ...o, ...orderData, id: o.id } : o));
     } else {
+      const totalValue = orderData.value;
+      const entry = orderData.paid || 0;
+      const remainingValue = totalValue - entry;
+
       if (installments > 1) {
-        const totalValue = orderData.value;
-        const entry = orderData.paid || 0;
-        const remainingValue = totalValue - entry;
         const installmentValue = remainingValue / installments;
-
-        const mainOrder: Order = {
-          ...orderData,
-          id: baseId,
-          value: totalValue, 
-          paid: entry,
-          remaining: 0,
-          status: entry >= totalValue ? 'Pago' : 'Pendente',
-          productionStatus: orderData.productionStatus || 'Pedido em aberto'
-        };
-
+        const mainOrder: Order = { ...orderData, id: baseId, value: totalValue, paid: entry, remaining: remainingValue, status: entry >= totalValue ? 'Pago' : 'Pendente', productionStatus: orderData.productionStatus || 'Pedido em aberto' };
         const financialRecurrences: Order[] = [];
-
         for (let i = 0; i < installments; i++) {
-          financialRecurrences.push({
-            ...orderData,
-            id: `${baseId}-P${i + 1}`,
-            date: getRecurrenceDate(firstPayDate, 'Mensal', i),
-            value: 0,
-            paid: 0,
-            remaining: installmentValue,
-            status: 'Pendente',
-            productionStatus: 'Apenas Financeiro',
-            items: [{ description: `Parcela ${i + 1}/${installments} ref. Pedido #${baseId}`, quantity: 1, unitPrice: installmentValue }]
-          });
+          financialRecurrences.push({ ...orderData, id: `${baseId}-P${i + 1}`, date: getRecurrenceDate(firstPayDate, 'Mensal', i), value: installmentValue, paid: 0, remaining: installmentValue, status: 'Pendente', productionStatus: 'Apenas Financeiro', items: [{ description: `Parcela ${i + 1}/${installments} ref. Pedido #${baseId}`, quantity: 1, unitPrice: installmentValue }] });
         }
-
         setOrders(prev => [mainOrder, ...financialRecurrences, ...prev]);
-
         if (entry > 0 && orderData.accountName) {
-          setAccounts(prev => prev.map(acc => 
-            acc.name === orderData.accountName 
-              ? { ...acc, balance: acc.balance + entry } 
-              : acc
-          ));
+          setAccounts(prev => prev.map(acc => acc.name === orderData.accountName ? { ...acc, balance: acc.balance + entry } : acc));
         }
       } else {
-        const order: Order = {
-          id: baseId,
-          date: currentDate,
-          ...orderData
-        };
+        const order: Order = { id: baseId, date: currentDate, ...orderData };
         setOrders(prev => [order, ...prev]);
-        
         if (orderData.paid > 0 && orderData.accountName) {
-          setAccounts(prev => prev.map(acc => 
-            acc.name === orderData.accountName 
-              ? { ...acc, balance: acc.balance + orderData.paid } 
-              : acc
-          ));
+          setAccounts(prev => prev.map(acc => acc.name === orderData.accountName ? { ...acc, balance: acc.balance + orderData.paid } : acc));
         }
       }
-
       setCustomers(prev => prev.map(c => c.name === orderData.customer ? { ...c, totalOrders: c.totalOrders + 1 } : c));
     }
     setIsNewOrderModalOpen(false);
@@ -256,91 +286,44 @@ export default function App() {
 
   const handleSaveProduct = (productData: any) => {
     if (productToEdit) {
-      setProducts(prev => prev.map(p => p.id === productToEdit.id ? { ...p, ...productData, id: p.id } : p));
+      setProducts(prev => prev.map(p => p.id === productToEdit.id ? { ...p, ...productData, id: p.id } : p).sort((a, b) => a.name.localeCompare(b.name)));
     } else {
       const product: Product = { id: Math.random().toString(36).substr(2, 9), ...productData };
-      setProducts(prev => [product, ...prev]);
+      setProducts(prev => [product, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
     }
     setIsNewProductModalOpen(false);
     setProductToEdit(null);
   };
 
-  const handleDeleteProduct = (id: string) => {
-    if (window.confirm('Excluir este produto do catálogo?')) {
-      setProducts(prev => prev.filter(p => p.id !== id));
-    }
-  };
-
-  const handleSaveAccount = (accountData: any) => {
-    const newAccount: BankAccount = { id: Math.random().toString(36).substr(2, 9), ...accountData };
-    setAccounts(prev => [...prev, newAccount]);
-  };
-
-  const handleDeleteAccount = (id: string) => {
-    if (accounts.length <= 1) {
-      alert("O sistema deve ter pelo menos uma conta ativa.");
-      return;
-    }
-    if (window.confirm('Excluir esta conta permanentemente? Esta ação não pode ser desfeita.')) {
-      setAccounts(prev => prev.filter(acc => acc.id !== id));
-    }
-  };
-
   const handleSaveTransaction = (data: any) => {
-    const isRec = data.isRecurring && data.recurrenceCount > 1;
-    const count = isRec ? data.recurrenceCount : 1;
-    const frequency = data.recurrenceFrequency || 'Mensal';
-    const transactionsToSave: any[] = [];
-
-    for (let i = 0; i < count; i++) {
-      const currentEntryDate = i === 0 ? data.dueDate : getRecurrenceDate(data.dueDate, frequency, i);
-      const entryId = Math.random().toString(36).substr(2, 9);
-      
-      const entryData = {
-        ...data,
-        id: entryId,
-        dueDate: currentEntryDate,
-        description: isRec ? `${data.description} (${i + 1}/${count})` : data.description,
-        status: i === 0 ? data.status : 'Pendente'
-      };
-      transactionsToSave.push(entryData);
-    }
-
+    const id = Math.random().toString(36).substr(2, 9);
     if (data.type === 'Despesa') {
-      setExpenses(prev => [...transactionsToSave, ...prev]);
-      
-      const initialEntry = transactionsToSave[0];
-      if (initialEntry.status === 'Pago' && initialEntry.accountName) {
-        setAccounts(prev => prev.map(acc => 
-          acc.name === initialEntry.accountName 
-            ? { ...acc, balance: acc.balance - initialEntry.value } 
-            : acc
-        ));
+      const newExpense: Expense = { id, description: data.description, value: data.value, dueDate: data.dueDate, status: data.status, category: data.category, quantity: data.quantity, unitPrice: data.unitPrice, paymentMethod: data.paymentMethod, accountName: data.accountName, observations: data.observations };
+      if (data.isRecurring && data.recurrenceFrequency && data.recurrenceCount) {
+        const recurrences: Expense[] = [];
+        for (let i = 1; i < data.recurrenceCount; i++) {
+          recurrences.push({ ...newExpense, id: `${id}-R${i}`, dueDate: getRecurrenceDate(data.dueDate, data.recurrenceFrequency, i), status: 'Pendente' });
+        }
+        setExpenses(prev => [...prev, newExpense, ...recurrences]);
+      } else {
+        setExpenses(prev => [...prev, newExpense]);
+      }
+      if (data.status === 'Pago') {
+        setAccounts(prev => prev.map(acc => acc.name === data.accountName ? { ...acc, balance: acc.balance - data.value } : acc));
       }
     } else {
-      // Fix: Explicitly typing newOrders as Order[] to prevent string widening of productionStatus union type.
-      const newOrders: Order[] = transactionsToSave.map(t => ({
-        id: t.id,
-        customer: t.description,
-        value: t.value,
-        paid: t.status === 'Pago' ? t.value : 0,
-        remaining: t.status === 'Pago' ? 0 : t.value,
-        date: t.dueDate,
-        status: t.status as any,
-        productionStatus: 'Apenas Financeiro',
-        accountName: t.accountName,
-        paymentMethod: t.paymentMethod
-      }));
-      
-      setOrders(prev => [...newOrders, ...prev]);
-
-      const initialEntry = transactionsToSave[0];
-      if (initialEntry.status === 'Pago' && initialEntry.accountName) {
-        setAccounts(prev => prev.map(acc => 
-          acc.name === initialEntry.accountName 
-            ? { ...acc, balance: acc.balance + initialEntry.value } 
-            : acc
-        ));
+      const newOrder: Order = { id: `REC-${id}`, customer: 'Lançamento Avulso', value: data.value, paid: data.status === 'Pago' ? data.value : 0, remaining: data.status === 'Pago' ? 0 : data.value, date: data.dueDate, status: data.status, productionStatus: 'Apenas Financeiro', items: [{ description: data.description, quantity: data.quantity, unitPrice: data.unitPrice }], paymentMethod: data.paymentMethod, accountName: data.accountName };
+      if (data.isRecurring && data.recurrenceFrequency && data.recurrenceCount) {
+        const recurrences: Order[] = [];
+        for (let i = 1; i < data.recurrenceCount; i++) {
+          recurrences.push({ ...newOrder, id: `REC-${id}-R${i}`, date: getRecurrenceDate(data.dueDate, data.recurrenceFrequency, i), paid: 0, remaining: data.value, status: 'Pendente' });
+        }
+        setOrders(prev => [...prev, newOrder, ...recurrences]);
+      } else {
+        setOrders(prev => [...prev, newOrder]);
+      }
+      if (data.status === 'Pago') {
+        setAccounts(prev => prev.map(acc => acc.name === data.accountName ? { ...acc, balance: acc.balance + data.value } : acc));
       }
     }
   };
@@ -348,54 +331,22 @@ export default function App() {
   const handleSettleOrder = (orderId: string) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
-
     const amountToPay = order.remaining;
-    
     setOrders(prev => {
       const updated = prev.map(o => o.id === orderId ? { ...o, paid: o.paid + amountToPay, remaining: 0, status: 'Pago' as const } : o);
-      if (viewingOrder && viewingOrder.id === orderId) {
-        setViewingOrder({ ...viewingOrder, paid: viewingOrder.paid + amountToPay, remaining: 0, status: 'Pago' as const });
-      }
+      if (viewingOrder && viewingOrder.id === orderId) setViewingOrder({ ...viewingOrder, paid: viewingOrder.paid + amountToPay, remaining: 0, status: 'Pago' as const });
       return updated;
     });
-    
     const targetAccountName = order.accountName || accounts[0]?.name;
-    
-    if (targetAccountName) {
-      setAccounts(prev => prev.map(acc => 
-        acc.name === targetAccountName 
-          ? { ...acc, balance: acc.balance + amountToPay } 
-          : acc
-      ));
-    }
+    if (targetAccountName) setAccounts(prev => prev.map(acc => acc.name === targetAccountName ? { ...acc, balance: acc.balance + amountToPay } : acc));
   };
 
   const handleSettleExpense = (expenseId: string, accountId?: string) => {
     const expense = expenses.find(e => e.id === expenseId);
     if (!expense) return;
-
     setExpenses(prev => prev.map(e => e.id === expenseId ? { ...e, status: 'Pago' } : e));
-    
-    let targetAccount = accounts.find(a => a.id === accountId);
-    if (!targetAccount) {
-      targetAccount = accounts.find(a => a.name === expense.accountName) || accounts[0];
-    }
-    
-    if (targetAccount) {
-      setAccounts(prev => prev.map(acc => 
-        acc.id === targetAccount?.id 
-          ? { ...acc, balance: acc.balance - expense.value } 
-          : acc
-      ));
-    }
-  };
-
-  const handleTransfer = (fromId: string, toId: string, amount: number) => {
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === fromId) return { ...acc, balance: acc.balance - amount };
-      if (acc.id === toId) return { ...acc, balance: acc.balance + amount };
-      return acc;
-    }));
+    let targetAccount = accounts.find(a => a.id === accountId) || accounts.find(a => a.name === expense.accountName) || accounts[0];
+    if (targetAccount) setAccounts(prev => prev.map(acc => acc.id === targetAccount?.id ? { ...acc, balance: acc.balance - expense.value } : acc));
   };
 
   const handleAdvanceStage = (orderId: string) => {
@@ -417,6 +368,7 @@ export default function App() {
     { id: 'historico', label: 'Histórico', icon: History },
     { id: 'clientes', label: 'Clientes', icon: Users },
     { id: 'produtos', label: 'Produtos', icon: Box },
+    { id: 'categorias', label: 'Categorias', icon: LayoutGrid },
     { id: 'configuracoes', label: 'Sistema', icon: Settings },
   ];
 
@@ -426,24 +378,10 @@ export default function App() {
         {isPrinting && viewingOrder ? (
           <PdfPrintView order={viewingOrder} company={companySettings} onBack={() => setIsPrinting(false)} onSettle={() => handleSettleOrder(viewingOrder.id)} />
         ) : viewingOrder ? (
-          <OrderDetailView 
-            order={viewingOrder} 
-            company={companySettings} 
-            onBack={() => setViewingOrder(null)} 
-            onSettle={() => handleSettleOrder(viewingOrder.id)} 
-            onPrint={() => setIsPrinting(true)}
-          />
+          <OrderDetailView order={viewingOrder} company={companySettings} onBack={() => setViewingOrder(null)} onSettle={() => handleSettleOrder(viewingOrder.id)} onPrint={() => setIsPrinting(true)} />
         ) : (
           <>
-            <Header 
-              hideValues={hideValues} 
-              onToggleHide={() => setHideValues(!hideValues)} 
-              dateRange={dateRange} 
-              onDateChange={setDateRange} 
-              onNewOrder={() => setIsNewOrderModalOpen(true)}
-              title={companySettings.dashboardTitle}
-              subtitle={companySettings.dashboardSubtitle}
-            />
+            <Header hideValues={hideValues} onToggleHide={() => setHideValues(!hideValues)} dateRange={dateRange} onDateChange={setDateRange} onNewOrder={() => setIsNewOrderModalOpen(true)} title={companySettings.dashboardTitle} subtitle={companySettings.dashboardSubtitle} greeting={companySettings.dashboardGreeting} lastSaved={lastSaved} />
             <div className="mt-8 flex flex-wrap gap-1 p-1 bg-slate-200/50 rounded-xl w-fit">
               {tabs.map((tab) => (
                 <button key={tab.id} onClick={() => setActiveView(tab.id)} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeView === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
@@ -453,8 +391,8 @@ export default function App() {
               ))}
             </div>
             <div className="mt-8">
-              {activeView === 'producao' && <ProductionGrid orders={orders} onViewOrder={setViewingOrder} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} onAdvanceStage={handleAdvanceStage} />}
-              {activeView === 'pedidos' && <OrdersGrid orders={orders} onNewOrder={() => setIsNewOrderModalOpen(true)} onViewOrder={setViewingOrder} onPrintOrder={(o) => {setViewingOrder(o); setIsPrinting(true);}} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} />}
+              {activeView === 'producao' && <ProductionGrid orders={filteredOrdersForPeriod} onViewOrder={setViewingOrder} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} onAdvanceStage={handleAdvanceStage} />}
+              {activeView === 'pedidos' && <OrdersGrid orders={filteredOrdersForPeriod} onNewOrder={() => setIsNewOrderModalOpen(true)} onViewOrder={setViewingOrder} onPrintOrder={(o) => {setViewingOrder(o); setIsPrinting(true);}} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} />}
               {activeView === 'financeiro' && (
                 <div className="space-y-8">
                   <QuickStats stats={calculatedStats} hideValues={hideValues} />
@@ -463,38 +401,25 @@ export default function App() {
                     <PayableBanner expenses={filteredExpensesForPeriod} accounts={accounts} onSettleExpense={handleSettleExpense} onNewTransaction={() => setIsNewTransactionModalOpen(true)} hideValues={hideValues} />
                   </div>
                   <FinancialSummary stats={calculatedStats} hideValues={hideValues} />
-                  <BankAccounts accounts={accounts} hideValues={hideValues} onOpenTransfer={() => setIsTransferModalOpen(true)} onOpenNewAccount={() => setIsNewAccountModalOpen(true)} onDeleteAccount={handleDeleteAccount} />
+                  <BankAccounts accounts={accounts} hideValues={hideValues} onOpenTransfer={() => setIsTransferModalOpen(true)} onOpenNewAccount={() => setIsNewAccountModalOpen(true)} onDeleteAccount={(id) => setAccounts(prev => prev.filter(acc => acc.id !== id))} />
                 </div>
               )}
-              {activeView === 'historico' && <HistoryGrid orders={orders} onViewOrder={setViewingOrder} />}
-              {activeView === 'clientes' && <CustomersGrid customers={customers} onNewCustomer={() => setIsNewCustomerModalOpen(true)} onDeleteCustomer={handleDeleteCustomer} />}
-              {activeView === 'produtos' && (
-                <ProductsGrid 
-                  products={products} 
-                  onNewProduct={() => setIsNewProductModalOpen(true)} 
-                  onEditProduct={(p) => { setProductToEdit(p); setIsNewProductModalOpen(true); }}
-                  onDeleteProduct={handleDeleteProduct}
-                />
-              )}
-              {activeView === 'configuracoes' && <SettingsGrid settings={companySettings} onSaveSettings={setCompanySettings} />}
+              {activeView === 'historico' && <HistoryGrid orders={filteredOrdersForPeriod} onViewOrder={setViewingOrder} />}
+              {activeView === 'clientes' && <CustomersGrid customers={customers} onNewCustomer={() => setIsNewCustomerModalOpen(true)} onEditCustomer={(c) => { setCustomerToEdit(c); setIsNewCustomerModalOpen(true); }} onDeleteCustomer={(id) => setCustomers(prev => prev.filter(c => c.id !== id))} />}
+              {activeView === 'produtos' && <ProductsGrid products={products} onNewProduct={() => setIsNewProductModalOpen(true)} onEditProduct={(p) => { setProductToEdit(p); setIsNewProductModalOpen(true); }} onDeleteProduct={(id) => setProducts(prev => prev.filter(p => p.id !== id))} />}
+              {activeView === 'categorias' && <CategoriesGrid products={products} settings={companySettings} onSaveSettings={setCompanySettings} />}
+              {activeView === 'configuracoes' && <SettingsGrid settings={companySettings} carriers={carriers} onSaveSettings={setCompanySettings} onSaveCarriers={setCarriers} onExport={handleExportData} onImport={handleImportData} onClearData={handleClearData} />}
             </div>
           </>
         )}
       </div>
 
-      <NewOrderModal isOpen={isNewOrderModalOpen} orderToEdit={orderToEdit} onClose={() => {setIsNewOrderModalOpen(false); setOrderToEdit(null);}} onSave={handleSaveOrder} customers={customers} products={products} accounts={accounts} />
-      <NewProductModal 
-        isOpen={isNewProductModalOpen} 
-        productToEdit={productToEdit}
-        onClose={() => { setIsNewProductModalOpen(false); setProductToEdit(null); }} 
-        onSave={handleSaveProduct} 
-        configuredMaterials={companySettings.materials}
-        configuredCategories={companySettings.categories}
-      />
-      <NewCustomerModal isOpen={isNewCustomerModalOpen} onClose={() => setIsNewCustomerModalOpen(false)} onSave={handleSaveCustomer} />
-      <NewAccountModal isOpen={isNewAccountModalOpen} onClose={() => setIsNewAccountModalOpen(false)} onSave={handleSaveAccount} />
-      <TransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} accounts={accounts} onTransfer={handleTransfer} />
-      <NewTransactionModal isOpen={isNewTransactionModalOpen} onClose={() => setIsNewTransactionModalOpen(false)} accounts={accounts} products={products} onSave={handleSaveTransaction} />
+      <NewOrderModal isOpen={isNewOrderModalOpen} orderToEdit={orderToEdit} onClose={() => {setIsNewOrderModalOpen(false); setOrderToEdit(null);}} onSave={handleSaveOrder} customers={customers} products={products} accounts={accounts} carriers={carriers} />
+      <NewProductModal isOpen={isNewProductModalOpen} productToEdit={productToEdit} onClose={() => { setIsNewProductModalOpen(false); setProductToEdit(null); }} onSave={handleSaveProduct} configuredMaterials={companySettings.materials} configuredCategories={companySettings.categories} />
+      <NewCustomerModal isOpen={isNewCustomerModalOpen} customerToEdit={customerToEdit} onClose={() => { setIsNewCustomerModalOpen(false); setCustomerToEdit(null); }} onSave={handleSaveCustomer} />
+      <NewAccountModal isOpen={isNewAccountModalOpen} onClose={() => setIsNewAccountModalOpen(false)} onSave={(acc) => setAccounts(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), ...acc }])} />
+      <TransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} accounts={accounts} onTransfer={(fromId, toId, amount) => setAccounts(prev => prev.map(acc => acc.id === fromId ? { ...acc, balance: acc.balance - amount } : acc.id === toId ? { ...acc, balance: acc.balance + amount } : acc))} />
+      <NewTransactionModal isOpen={isNewTransactionModalOpen} onClose={() => setIsNewTransactionModalOpen(false)} accounts={accounts} products={products} expenseCategories={companySettings.expenseCategories} onSave={handleSaveTransaction} />
     </div>
   );
 }

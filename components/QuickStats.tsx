@@ -16,8 +16,8 @@ export const QuickStats: React.FC<QuickStatsProps> = ({ stats, hideValues }) => 
   const cards = [
     { label: 'Receber hoje', value: stats.receberHoje, desc: 'vencendo hoje a receber', color: 'bg-green-50 text-green-700 border-green-100' },
     { label: 'A pagar hoje', value: stats.pagarHoje, desc: 'vencendo hoje a pagar', color: 'bg-rose-50 text-rose-700 border-rose-100' },
-    { label: 'Total de pedidos no período', value: stats.totalPedidosPeriodo, desc: '', color: 'bg-blue-50 text-blue-700 border-blue-100' },
-    { label: 'Total a receber no período', value: stats.totalReceberPeriodo, desc: '', color: 'bg-teal-50 text-teal-700 border-teal-100' },
+    { label: 'Total a Receber (Sistema)', value: stats.totalReceberGeral, desc: 'saldo global pendente', color: 'bg-orange-50 text-orange-700 border-orange-100 font-black' },
+    { label: 'A Receber no Período', value: stats.totalReceberPeriodo, desc: 'pendente no filtro atual', color: 'bg-teal-50 text-teal-700 border-teal-100' },
   ];
 
   return (

@@ -24,6 +24,13 @@ export const OrdersGrid: React.FC<OrdersGridProps> = ({ orders, onNewOrder, onVi
     }
   };
 
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '--';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  };
+
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
       <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -77,7 +84,7 @@ export const OrdersGrid: React.FC<OrdersGridProps> = ({ orders, onNewOrder, onVi
                       <span className="font-bold text-slate-400 text-xs">#{order.id}</span>
                       <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5 font-medium">
                         <Calendar className="w-3 h-3" />
-                        {order.date}
+                        {formatDate(order.date)}
                       </div>
                     </div>
                   </td>

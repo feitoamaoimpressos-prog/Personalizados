@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Calendar, ChevronDown, Clock, Check } from 'lucide-react';
+import { Calendar, ChevronDown, Clock, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DateRange {
   start: string;
@@ -45,18 +45,34 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ range, onChang
     }
   };
 
-  const applyPreset = (days: number | 'month') => {
+  const navigateMonth = (direction: number) => {
+    const [year, month] = range.start.split('-').map(Number);
+    const newDate = new Date(year, month - 1 + direction, 1);
+    
+    const start = new Date(newDate.getFullYear(), newDate.getMonth(), 1);
+    const end = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0);
+
+    onChange({
+      start: getLocalDateString(start),
+      end: getLocalDateString(end)
+    });
+  };
+
+  const applyPreset = (type: number | 'this-month' | 'last-month') => {
     const now = new Date();
     let start = new Date();
     let end = new Date();
     
-    if (days === 'month') {
+    if (type === 'this-month') {
       start = new Date(now.getFullYear(), now.getMonth(), 1);
       end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    } else {
+    } else if (type === 'last-month') {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (typeof type === 'number') {
       start = new Date();
-      start.setDate(now.getDate() - days);
-      end = new Date(); // Hoje
+      start.setDate(now.getDate() - type);
+      end = new Date();
     }
 
     onChange({
@@ -69,35 +85,85 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ range, onChang
   const presets = [
     { label: 'Hoje', value: 0 },
     { label: 'Últimos 7 dias', value: 7 },
-    { label: 'Últimos 30 dias', value: 30 },
-    { label: 'Este Mês', value: 'month' as const },
+    { label: 'Este Mês', value: 'this-month' as const },
+    { label: 'Mês Anterior', value: 'last-month' as const },
   ];
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [year, month, day] = parts;
+    return `${day}-${month}-${year}`;
   };
+
+  // Determinar se o intervalo atual é exatamente um mês
+  const getMonthLabel = () => {
+    const [sy, sm, sd] = range.start.split('-').map(Number);
+    const [ey, em, ed] = range.end.split('-').map(Number);
+    
+    const isFirstDay = sd === 1;
+    const isLastDay = ed === new Date(ey, em, 0).getDate();
+    const isSameMonth = sy === ey && sm === em;
+
+    if (isFirstDay && isLastDay && isSameMonth) {
+      const monthNames = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+      ];
+      return `${monthNames[sm - 1]} de ${sy}`;
+    }
+    return null;
+  };
+
+  const monthLabel = getMonthLabel();
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-3 px-4 py-2.5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-blue-400 hover:ring-4 hover:ring-blue-500/5 transition-all text-left"
-      >
-        <div className="bg-blue-50 p-1.5 rounded-lg">
-          <Calendar className="w-4 h-4 text-blue-600" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Período</span>
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-            <span>{formatDate(range.start)}</span>
-            <span className="text-slate-300">até</span>
-            <span>{formatDate(range.end)}</span>
+      <div className="flex items-center gap-1">
+        {/* Atalhos rápidos de navegação */}
+        <button 
+          onClick={() => navigateMonth(-1)}
+          className="p-2.5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:bg-slate-50 transition-all text-slate-400 hover:text-blue-600 active:scale-95"
+          title="Mês Anterior"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-3 px-4 py-2.5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-blue-400 hover:ring-4 hover:ring-blue-500/5 transition-all text-left min-w-[200px]"
+        >
+          <div className="bg-blue-50 p-1.5 rounded-lg">
+            <Calendar className="w-4 h-4 text-blue-600" />
           </div>
-        </div>
-        <ChevronDown className={`w-4 h-4 text-slate-400 ml-2 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+              {monthLabel ? 'Visualizando Mês' : 'Período Personalizado'}
+            </span>
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+              {monthLabel ? (
+                <span className="truncate">{monthLabel}</span>
+              ) : (
+                <>
+                  <span>{formatDate(range.start)}</span>
+                  <span className="text-slate-300">até</span>
+                  <span>{formatDate(range.end)}</span>
+                </>
+              )}
+            </div>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-slate-400 ml-auto transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        <button 
+          onClick={() => navigateMonth(1)}
+          className="p-2.5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:bg-slate-50 transition-all text-slate-400 hover:text-blue-600 active:scale-95"
+          title="Próximo Mês"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
 
       {isOpen && (
         <div className="absolute top-full left-0 mt-3 w-72 bg-white border border-slate-100 rounded-3xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">

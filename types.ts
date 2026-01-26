@@ -13,11 +13,19 @@ export interface CompanySettings {
   phone: string;
   email: string;
   pixKey: string;
+  pixKeyType?: 'CNPJ' | 'CPF' | 'E-mail' | 'Telefone' | 'Chave Aleatória';
+  bankName?: string;
+  taxId?: string; // CNPJ
+  stateRegistration?: string; // IE
+  website?: string;
+  instagram?: string;
   logo?: string;
   dashboardTitle?: string;
   dashboardSubtitle?: string;
-  materials?: string[]; // Lista de materiais pré-configurados
-  categories?: string[]; // Lista de categorias de produtos pré-configuradas
+  dashboardGreeting?: string;
+  materials?: string[]; 
+  categories?: string[]; 
+  expenseCategories?: string[]; 
 }
 
 export interface FinancialStats {
@@ -25,6 +33,7 @@ export interface FinancialStats {
   pagarHoje: number;
   totalPedidosPeriodo: number;
   totalReceberPeriodo: number;
+  totalReceberGeral: number; 
   receitas: number;
   despesas: number;
   lucro: number;
@@ -46,15 +55,21 @@ export interface Order {
   remaining: number;
   date?: string;
   status?: 'Pendente' | 'Pago' | 'Cancelado';
-  /**
-   * Added 'Apenas Financeiro' to represent non-production related financial records (e.g., installments).
-   */
   productionStatus?: 'Pedido em aberto' | 'Criando arte' | 'Pedido em produção' | 'Pedido em transporte' | 'Pedido entregue' | 'Apenas Financeiro';
   items?: OrderItem[];
   customerPhone?: string;
+  customerEmail?: string;
+  customerAddress?: string;
+  customerZip?: string;
+  customerCity?: string;
+  customerState?: string;
+  customerTaxId?: string;
   paymentMethod?: string;
   installments?: number;
   accountName?: string;
+  shipping?: number;
+  discount?: number;
+  carrier?: string;
 }
 
 export interface Expense {
@@ -83,6 +98,8 @@ export interface Customer {
   address?: string;
   neighborhood?: string;
   city?: string;
+  state?: string;
+  zip?: string;
   observations?: string;
 }
 
@@ -99,4 +116,14 @@ export interface Product {
   finishing?: string;
 }
 
-export type ViewType = 'financeiro' | 'producao' | 'clientes' | 'produtos' | 'pedidos' | 'configuracoes' | 'pdf' | 'historico';
+export interface Carrier {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  responsible?: string;
+  type: 'Motoboy' | 'Transportadora' | 'Correios' | 'Retirada';
+  status: 'Ativo' | 'Inativo';
+}
+
+export type ViewType = 'financeiro' | 'producao' | 'clientes' | 'produtos' | 'categorias' | 'pedidos' | 'configuracoes' | 'pdf' | 'historico';

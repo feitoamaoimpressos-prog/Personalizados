@@ -1,14 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
+import { Customer } from '../types';
 
 interface NewCustomerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (customer: any) => void;
+  customerToEdit?: Customer | null;
 }
 
-export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onClose, onSave }) => {
+export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onClose, onSave, customerToEdit }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -24,18 +26,30 @@ export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onCl
 
   useEffect(() => {
     if (isOpen) {
-      setName('');
-      setPhone('');
-      setEmail('');
-      setTaxId('');
-      setResponsible('');
-      setAddress('');
-      setNeighborhood('');
-      setCity('');
-      setObservations('');
+      if (customerToEdit) {
+        setName(customerToEdit.name || '');
+        setPhone(customerToEdit.phone || '');
+        setEmail(customerToEdit.email || '');
+        setTaxId(customerToEdit.taxId || '');
+        setResponsible(customerToEdit.responsible || '');
+        setAddress(customerToEdit.address || '');
+        setNeighborhood(customerToEdit.neighborhood || '');
+        setCity(customerToEdit.city || '');
+        setObservations(customerToEdit.observations || '');
+      } else {
+        setName('');
+        setPhone('');
+        setEmail('');
+        setTaxId('');
+        setResponsible('');
+        setAddress('');
+        setNeighborhood('');
+        setCity('');
+        setObservations('');
+      }
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, customerToEdit]);
 
   const maskPhone = (value: string) => {
     if (!value) return "";
@@ -84,9 +98,10 @@ export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onCl
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="bg-white w-full max-w-[640px] rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8">
-        {/* Header conforme a imagem */}
         <div className="px-6 py-4 flex items-center justify-between">
-          <h2 className="text-[22px] font-bold text-slate-900">Novo Cliente</h2>
+          <h2 className="text-[22px] font-bold text-slate-900">
+            {customerToEdit ? 'Editar Cliente' : 'Novo Cliente'}
+          </h2>
           <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-md transition-colors">
             <X className="w-5 h-5 text-slate-400" />
           </button>
@@ -209,7 +224,6 @@ export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onCl
           </div>
         </div>
 
-        {/* Footer conforme a imagem */}
         <div className="px-6 py-4 flex justify-end gap-3">
           <button 
             onClick={onClose}
@@ -223,7 +237,7 @@ export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onCl
             className="flex items-center gap-2 px-6 py-2 bg-[#86efac] text-white rounded-md text-sm font-bold hover:bg-[#4ade80] transition-all disabled:opacity-50"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Salvar
+            {customerToEdit ? 'Atualizar' : 'Salvar'}
           </button>
         </div>
       </div>

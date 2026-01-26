@@ -11,7 +11,10 @@ import {
   AlertCircle,
   Plus,
   Printer,
-  ChevronRight
+  ChevronRight,
+  Truck,
+  Tag,
+  Store
 } from 'lucide-react';
 import { Order, CompanySettings } from '../types';
 
@@ -36,6 +39,15 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
     };
     return styles[status || ''] || 'bg-slate-100 text-slate-600';
   };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '--';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  };
+
+  const itemsSubtotal = order.items?.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0) || order.value;
 
   return (
     <div className="max-w-3xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -64,7 +76,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">{order.customer}</h2>
             <div className="flex items-center gap-2 text-slate-400 font-bold text-sm">
               <Phone className="w-4 h-4" />
-              <span>{order.customerPhone || '(12) 98827-4634'}</span>
+              <span>{order.customerPhone || 'Não informado'}</span>
             </div>
           </div>
           <div className="text-right flex flex-col items-end gap-2">
@@ -117,6 +129,39 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
           </div>
         </div>
 
+        {/* Frete, Desconto e Transportadora Detail */}
+        {(order.shipping || order.discount || order.carrier) && (
+          <div className="px-8 pb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+             {order.carrier ? (
+               <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
+                 <Store className="w-5 h-5 text-blue-400" />
+                 <div>
+                    <span className="text-[9px] font-black text-blue-400 uppercase block">Transportadora</span>
+                    <p className="text-sm font-black text-blue-700 truncate max-w-[120px]">{order.carrier}</p>
+                 </div>
+               </div>
+             ) : null}
+             {order.shipping ? (
+               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
+                 <Truck className="w-5 h-5 text-slate-400" />
+                 <div>
+                    <span className="text-[9px] font-black text-slate-400 uppercase block">Frete</span>
+                    <p className="text-sm font-black text-slate-700">R$ {order.shipping.toFixed(2)}</p>
+                 </div>
+               </div>
+             ) : null}
+             {order.discount ? (
+               <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-center gap-3">
+                 <Tag className="w-5 h-5 text-rose-400" />
+                 <div>
+                    <span className="text-[9px] font-black text-rose-400 uppercase block">Desconto</span>
+                    <p className="text-sm font-black text-rose-600">- R$ {order.discount.toFixed(2)}</p>
+                 </div>
+               </div>
+             ) : null}
+          </div>
+        )}
+
         {/* Information Grid */}
         <div className="px-8 pb-8 grid grid-cols-2 gap-y-6 gap-x-12 border-b border-slate-50">
           <div className="flex items-start gap-3">
@@ -126,19 +171,8 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
             <div>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Data do Pedido</span>
               <p className="text-sm font-bold text-slate-700">
-                {order.date ? new Date(order.date).toLocaleDateString('pt-BR') : '--'}
-                <span className="text-slate-400 ml-1">às 15:48</span>
+                {formatDate(order.date)}
               </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="bg-emerald-50 p-2.5 rounded-xl">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Data de Entrega</span>
-              <p className="text-sm font-bold text-slate-700">23/01/2026</p>
             </div>
           </div>
 
@@ -148,17 +182,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
             </div>
             <div>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Forma de Pagamento</span>
-              <p className="text-sm font-bold text-slate-700">{order.paymentMethod || 'PIX'}</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="bg-orange-50 p-2.5 rounded-xl">
-              <Clock className="w-5 h-5 text-orange-500" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Prioridade</span>
-              <p className="text-sm font-bold text-slate-700">Normal</p>
+              <p className="text-sm font-bold text-slate-700">{order.paymentMethod || 'Não definido'}</p>
             </div>
           </div>
         </div>
@@ -183,39 +207,33 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
                   <p className="text-sm font-black text-blue-600">R$ {(item.quantity * item.unitPrice).toFixed(2)}</p>
                 </div>
               ))
-            ) : (
-              <div className="bg-slate-50/50 rounded-2xl p-6 flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="font-black text-slate-800 tracking-tight">Serviço Gráfico Geral</p>
-                  <p className="text-[11px] font-bold text-slate-400">
-                    Quantidade: 1 | Preço unitário: R$ {order.value.toFixed(2)}
-                  </p>
-                </div>
-                <p className="text-sm font-black text-blue-600">R$ {order.value.toFixed(2)}</p>
-              </div>
-            )}
+            ) : null}
           </div>
 
           {/* Totals Section */}
           <div className="pt-8 space-y-4">
-            <div className="flex items-center justify-between px-6 text-slate-500 font-bold text-sm">
-              <span>Subtotal:</span>
-              <span>R$ {order.value.toFixed(2)}</span>
+            <div className="flex items-center justify-between px-6 text-slate-400 font-bold text-[11px] uppercase tracking-widest">
+              <span>Subtotal Itens:</span>
+              <span>R$ {itemsSubtotal.toFixed(2)}</span>
             </div>
+            {order.shipping ? (
+              <div className="flex items-center justify-between px-6 text-slate-400 font-bold text-[11px] uppercase tracking-widest">
+                <span>Frete:</span>
+                <span>+ R$ {order.shipping.toFixed(2)}</span>
+              </div>
+            ) : null}
+            {order.discount ? (
+              <div className="flex items-center justify-between px-6 text-rose-400 font-bold text-[11px] uppercase tracking-widest">
+                <span>Desconto:</span>
+                <span>- R$ {order.discount.toFixed(2)}</span>
+              </div>
+            ) : null}
             <div className="bg-blue-50/50 rounded-2xl p-6 flex items-center justify-between border border-blue-100">
-              <span className="text-sm font-black text-slate-800 uppercase tracking-tight">Valor Total:</span>
+              <span className="text-sm font-black text-slate-800 uppercase tracking-tight">Valor Final:</span>
               <span className="text-3xl font-black text-blue-600 tracking-tighter">R$ {order.value.toFixed(2)}</span>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Footer Helper */}
-      <div className="mt-8 text-center px-8">
-        <p className="text-xs text-slate-400 font-medium leading-relaxed italic">
-          Ao registrar o pagamento, os saldos das contas bancárias serão atualizados automaticamente. 
-          Este documento é uma visualização interna de gestão operacional e financeira.
-        </p>
       </div>
     </div>
   );

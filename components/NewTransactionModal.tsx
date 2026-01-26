@@ -8,13 +8,21 @@ interface NewTransactionModalProps {
   onClose: () => void;
   accounts: BankAccount[];
   products: Product[];
+  expenseCategories?: string[];
   onSave: (transaction: any) => void;
 }
 
-export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen, onClose, accounts, products, onSave }) => {
+export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  accounts, 
+  products, 
+  expenseCategories = ['Fornecedor', 'Aluguel', 'Luz/Água', 'Outros'], 
+  onSave 
+}) => {
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState('Despesa');
-  const [category, setCategory] = useState('Fornecedor');
+  const [category, setCategory] = useState(expenseCategories[0] || 'Outros');
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
@@ -33,7 +41,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
   useEffect(() => {
     if (isOpen) {
       setType('Despesa');
-      setCategory('Fornecedor');
+      setCategory(expenseCategories[0] || 'Outros');
       setDescription('');
       setQuantity(1);
       setUnitPrice(0);
@@ -46,7 +54,7 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
       setRecurrenceFrequency('Mensal');
       setRecurrenceCount(12);
     }
-  }, [isOpen, accounts]);
+  }, [isOpen, accounts, expenseCategories]);
 
   const totalValue = useMemo(() => quantity * unitPrice, [quantity, unitPrice]);
 
@@ -76,7 +84,6 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
     }, 600);
   };
 
-  // Fixed 'never' type narrowing issue by using any cast for the element
   const triggerDatePicker = () => {
     const el = dateInputRef.current as any;
     if (el) {
@@ -128,14 +135,9 @@ export const NewTransactionModal: React.FC<NewTransactionModalProps> = ({ isOpen
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/5 appearance-none"
                 >
-                  <option value="Fornecedor">Fornecedor</option>
-                  <option value="Aluguel">Aluguel</option>
-                  <option value="Luz/Água">Luz/Água</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Manutenção">Manutenção</option>
-                  <option value="Salários">Salários</option>
-                  <option value="Impostos">Impostos</option>
-                  <option value="Outros">Outros</option>
+                  {expenseCategories.map((cat, idx) => (
+                    <option key={idx} value={cat}>{cat}</option>
+                  ))}
                 </select>
                 <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               </div>
