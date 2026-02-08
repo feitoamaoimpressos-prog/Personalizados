@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Printer, Download, ArrowLeft, Loader2, Wrench } from 'lucide-react';
 import { Order, CompanySettings } from '../types';
@@ -65,7 +64,6 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center py-10">
-      {/* Menu de Controle Superior */}
       <div className="w-full max-w-[210mm] mb-6 bg-white p-4 rounded-3xl shadow-lg border border-slate-200 flex items-center justify-between print-hidden">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2 bg-slate-50 hover:bg-slate-200 rounded-xl transition-all text-slate-500">
@@ -95,7 +93,6 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
         </div>
       </div>
 
-      {/* Área do Documento A4 */}
       <div id="printable-document" className="pdf-page">
         <style>{`
           .pdf-page {
@@ -118,7 +115,7 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
             margin-bottom: 6mm; 
           }
           
-          .company-name { font-size: 14pt; font-weight: 900; text-transform: uppercase; margin: 0; color: #1e293b !important; }
+          .company-name { font-size: 13pt; font-weight: 900; text-transform: uppercase; margin: 0; color: #1e293b !important; }
           .company-info { font-size: 8pt; line-height: 1.4; margin-top: 2mm; color: #64748b !important; font-weight: 500; }
           
           .doc-type-container { text-align: right; }
@@ -201,7 +198,6 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
           }
         `}</style>
 
-        {/* Cabeçalho */}
         <div className="header">
           <div>
             <h1 className="company-name">{company.name}</h1>
@@ -219,7 +215,6 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
           </div>
         </div>
 
-        {/* Metadados Superiores */}
         <div className="top-meta">
           <div className="meta-box">
             <span className="meta-label">Data de Referência</span>
@@ -231,7 +226,6 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
           </div>
         </div>
 
-        {/* Seção de Dados do Cliente (Campos Dinâmicos) */}
         <div className="section-header">Dados do Cliente</div>
         <div className="section-content">
           <div className="grid grid-cols-2 gap-x-8">
@@ -263,22 +257,9 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
                 <span className="field-value">{order.customerAddress}</span>
               </div>
             )}
-            {order.customerCity && (
-              <div>
-                <span className="field-label">Cidade / UF:</span>
-                <span className="field-value">{order.customerCity}</span>
-              </div>
-            )}
-            {order.customerZip && (
-              <div>
-                <span className="field-label">CEP:</span>
-                <span className="field-value">{order.customerZip}</span>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Tabela de Itens */}
         <table className="items-table">
           <thead>
             <tr>
@@ -302,7 +283,6 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
           </tbody>
         </table>
 
-        {/* Seção Exclusiva para OS: Detalhes de Produção */}
         {isOS && (
           <>
             <div className="section-header">
@@ -320,7 +300,6 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
           </>
         )}
 
-        {/* Totais (Apenas em Pedidos/Orçamentos) */}
         {!isOS && (
           <div className="totals-container">
             <div className="totals-table">
@@ -348,16 +327,13 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
           </div>
         )}
 
-        {/* Assinaturas */}
         <div className="signatures">
           <div className="sig-line">{isOS ? "Responsável Produção" : "Assinatura do Cliente"}</div>
           <div className="sig-line">{isOS ? "Conferência Final" : "Responsável Venda"}</div>
         </div>
 
-        {/* Rodapé Informativo */}
         <div className="text-[7.5pt] text-slate-400 text-center mt-10 border-t border-slate-50 pt-4">
           <p><strong>Atenção:</strong> Este documento não é nota fiscal. Variações de cores podem ocorrer devido ao processo de impressão.</p>
-          {isOS && <p>Confira os materiais antes de liberar a entrega.</p>}
         </div>
       </div>
     </div>
