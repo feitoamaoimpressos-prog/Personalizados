@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Printer, Download, ArrowLeft, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Printer, Download, ArrowLeft, Loader2, Wrench } from 'lucide-react';
 import { Order, CompanySettings } from '../types';
 
 const loadHtml2Pdf = async () => {
@@ -8,7 +8,7 @@ const loadHtml2Pdf = async () => {
   return html2pdf;
 };
 
-type DocType = 'PEDIDO' | 'ORÇAMENTO' | 'ORDEM DE SERVIÇO';
+type DocType = 'PEDIDO' | 'ORÇAMENTO' | 'ORDEM DE SERVIÇO' | 'RECIBO';
 
 interface PdfPrintViewProps {
   order: Order;
@@ -18,9 +18,11 @@ interface PdfPrintViewProps {
   onSettle?: () => void;
 }
 
-export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBack, onEdit, onSettle }) => {
+export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBack }) => {
   const [docType, setDocType] = useState<DocType>('PEDIDO');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const isOS = docType === 'ORDEM DE SERVIÇO';
 
   const formatDateToDisplay = (dateStr?: string) => {
     if (!dateStr) return '';
@@ -43,7 +45,7 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
         margin: [5, 5, 5, 5],
         filename: `${docType}_${order.id}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
+        html2canvas: { scale: 3, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
       await html2pdf().from(element).set(opt).save();
@@ -60,327 +62,21 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
   const nowTime = todayRaw.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   const itemsSubtotal = order.items?.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0) || 0;
-  const totalItemsQuantity = order.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
-
-  const isIndividualInstallment = order.productionStatus === 'Apenas Financeiro';
-  const isOS = docType === 'ORDEM DE SERVIÇO';
-  const realRemaining = order.remaining;
-
-  const renderPedidoLayout = () => (
-    <div id="printable-document" className="pdf-container">
-      <style>{`
-        .pdf-container {
-          width: 210mm;
-          min-height: 297mm;
-          background: white;
-          padding: 10mm;
-          color: #000 !important;
-          font-family: 'Inter', sans-serif;
-          margin: 0 auto;
-          box-sizing: border-box;
-        }
-        /* Forçar todos os textos para preto */
-        .pdf-container *, .pdf-container p, .pdf-container span, .pdf-container h1, .pdf-container h2, .pdf-container td, .pdf-container th {
-          color: #000 !important;
-        }
-
-        .header-section { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-        .company-info h1 { font-size: 18px; font-weight: 900; margin-bottom: 2px; text-transform: uppercase; }
-        .company-info p { font-size: 9px; margin-bottom: 1px; font-weight: 500; }
-        .doc-title-box { text-align: right; }
-        .doc-title-box h2 { font-size: 28px; font-weight: 900; margin: 0; }
-        .order-number { 
-          background: #000; 
-          color: #fff !important; 
-          padding: 4px 15px; 
-          border-radius: 6px; 
-          font-weight: 900; 
-          display: inline-block; 
-          margin-top: 4px;
-          font-size: 12px;
-        }
-        .date-info { font-size: 8px; font-weight: 800; margin-top: 8px; text-transform: uppercase; }
-        
-        .gray-bar { 
-          background: #f1f5f9; 
-          border: 1px solid #e2e8f0; 
-          padding: 5px 10px; 
-          font-size: 10px; 
-          font-weight: 900; 
-          margin-bottom: 12px; 
-          text-transform: uppercase;
-        }
-        
-        .section-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1px solid #e2e8f0; }
-        .section-header { 
-          background: #f1f5f9; 
-          border: 1px solid #e2e8f0; 
-          padding: 4px 10px; 
-          font-size: 10px; 
-          font-weight: 900; 
-          text-transform: uppercase;
-          text-align: left;
-        }
-        .field-label { font-size: 9px; font-weight: 800; padding: 5px; border: 1px solid #e2e8f0; background: #f8fafc; text-align: left; }
-        .field-value { font-size: 9px; font-weight: 600; padding: 5px; border: 1px solid #e2e8f0; background: white; text-align: left; }
-
-        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; border: 1px solid #e2e8f0; }
-        .items-table th { 
-          border: 1px solid #e2e8f0; 
-          padding: 6px; 
-          font-size: 9px; 
-          font-weight: 900; 
-          background: #f1f5f9; 
-          text-transform: uppercase;
-          text-align: center;
-        }
-        .items-table td { border: 1px solid #e2e8f0; padding: 5px 8px; font-size: 9px; }
-        .items-table tr.total-row td { background: #f1f5f9; font-weight: 900; border-top: 2px solid #e2e8f0; }
-
-        .summary-block { display: flex; flex-direction: column; align-items: flex-end; width: 100%; margin-bottom: 15px; }
-        .summary-row { 
-          display: flex; 
-          justify-content: space-between; 
-          width: 220px; 
-          padding: 4px 8px; 
-          font-size: 10px; 
-          font-weight: 900;
-          text-transform: uppercase;
-          border-bottom: 1px solid #e2e8f0;
-        }
-        .summary-row.total { background: #f1f5f9; border: 1px solid #e2e8f0; margin-top: 2px; font-size: 11px; border-bottom: none; }
-
-        .payment-box { border: 1px solid #e2e8f0; padding: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; background: white; }
-        .payment-field { display: flex; flex-direction: column; gap: 2px; }
-        .payment-label { font-size: 8px; font-weight: 900; text-transform: uppercase; }
-        .payment-value { font-size: 11px; font-weight: 900; }
-
-        .signature-box { 
-          border: 1px solid #e2e8f0; 
-          padding: 30px 20px 10px 20px; 
-          text-align: center; 
-          margin-top: 30px;
-          background: white;
-        }
-        .signature-line { border-top: 1px solid #000; width: 60%; margin: 0 auto 5px auto; }
-        .signature-text { font-size: 9px; font-weight: 900; text-transform: uppercase; }
-
-        @media print {
-          @page {
-            margin: 0 !important;
-            size: auto;
-          }
-          body {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          #root, #root > div, main, .max-w-[1800px], .mx-auto, .px-4, .py-8 {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: none !important;
-            width: 100% !important;
-            min-height: auto !important;
-            background: transparent !important;
-          }
-          .print-hidden {
-            display: none !important;
-          }
-          .pdf-container {
-            margin: 0 !important;
-            padding: 10mm !important;
-            width: 210mm !important;
-            height: 297mm !important;
-            border: none !important;
-            box-shadow: none !important;
-          }
-          /* Garantia final de texto preto na impressão */
-          .pdf-container * {
-            color: #000 !important;
-          }
-          .order-number {
-             background: #000 !important;
-             color: #fff !important;
-          }
-        }
-      `}</style>
-
-      <div className="header-section">
-        <div className="company-info">
-          <h1>{company.name}</h1>
-          <p>{company.address}</p>
-          <p>{company.city}</p>
-          <p>Telefone: {company.phone}</p>
-          <p>E-mail: {company.email}</p>
-        </div>
-        <div className="doc-title-box">
-          <h2>{docType}</h2>
-          <div className="order-number">Nº PED{order.id}</div>
-          <div className="date-info">
-            <p>Emitido {todayFormatted} às {nowTime}</p>
-            <p>Referência: {formatDateToDisplay(order.date) || todayFormatted}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="gray-bar">
-        PRAZO DE ENTREGA: {formatDateToDisplay(order.date) || todayFormatted}
-      </div>
-
-      <div className="section-header">Dados do Cliente</div>
-      <table className="section-table">
-        <tbody>
-          <tr>
-            <td className="field-label" style={{width: '60px'}}>CLIENTE:</td>
-            <td className="field-value" style={{width: '320px'}}>{order.customer}</td>
-            <td className="field-label" style={{width: '100px'}}>CNPJ/CPF:</td>
-            <td className="field-value">{order.customerTaxId || '---'}</td>
-          </tr>
-          <tr>
-            <td className="field-label">ENDEREÇO:</td>
-            <td className="field-value">{order.customerAddress || '---'}</td>
-            <td className="field-label">CEP:</td>
-            <td className="field-value">{order.customerZip || '---'}</td>
-          </tr>
-          <tr>
-            <td className="field-label">CIDADE:</td>
-            <td className="field-value">{order.customerCity || '---'}</td>
-            <td className="field-label">ESTADO:</td>
-            <td className="field-value">{order.customerState || '---'}</td>
-          </tr>
-          <tr>
-            <td className="field-label">TELEFONE:</td>
-            <td className="field-value">{order.customerPhone || '---'}</td>
-            <td className="field-label">E-MAIL:</td>
-            <td className="field-value">{order.customerEmail || '---'}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div className="section-header">Produtos / Serviços</div>
-      <table className="items-table">
-        <thead>
-          <tr>
-            <th style={{width: '40px'}}>ITEM</th>
-            <th>NOME</th>
-            <th style={{width: '60px'}}>UND.</th>
-            <th style={{width: '60px'}}>QTD.</th>
-            {!isOS && <th style={{width: '100px'}}>VR. UNIT.</th>}
-            {!isOS && <th style={{width: '100px'}}>SUBTOTAL</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {order.items?.map((item, idx) => (
-            <tr key={idx}>
-              <td style={{textAlign: 'center'}}>{idx + 1}</td>
-              <td style={{fontWeight: 600}}>{item.description}</td>
-              <td style={{textAlign: 'center'}}>Matriz</td>
-              <td style={{textAlign: 'center', fontWeight: 800}}>{item.quantity}</td>
-              {!isOS && <td style={{textAlign: 'right'}}>{item.unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
-              {!isOS && <td style={{textAlign: 'right', fontWeight: 800}}>{(item.quantity * item.unitPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
-            </tr>
-          ))}
-          <tr className="total-row">
-            <td colSpan={3}>TOTAL DE ITENS</td>
-            <td style={{textAlign: 'center'}}>{totalItemsQuantity}</td>
-            {!isOS && <td></td>}
-            {!isOS && <td style={{textAlign: 'right'}}>{itemsSubtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
-          </tr>
-        </tbody>
-      </table>
-
-      {!isOS && (
-        <div className="summary-block">
-          <div className="summary-row">
-            <span>PRODUTOS:</span>
-            <span>{itemsSubtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-          </div>
-          {!isIndividualInstallment && (
-            <>
-              <div className="summary-row">
-                <span>FRETE:</span>
-                <span>{order.shipping?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}</span>
-              </div>
-              <div className="summary-row">
-                <span>DESCONTO:</span>
-                <span>- {order.discount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}</span>
-              </div>
-            </>
-          )}
-          <div className="summary-row total">
-            <span>{isIndividualInstallment ? 'VALOR DA PARCELA:' : 'TOTAL GERAL:'}</span>
-            <span>R$ {order.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
-      )}
-
-      {!isOS && <div className="section-header" style={{marginBottom: 0}}>Condições de Pagamento</div>}
-      {!isOS && (
-        <div className="payment-box">
-          <div className="payment-field">
-            <span className="payment-label">FORMA DE PAGAMENTO:</span>
-            <span className="payment-value">{order.paymentMethod || 'NÃO INFORMADO'}</span>
-          </div>
-          <div className="payment-field">
-            <span className="payment-label">DETALHE:</span>
-            <span className="payment-value">
-              {isIndividualInstallment 
-                ? `PARCELA INDIVIDUAL` 
-                : (order.installments && order.installments > 1 
-                  ? `${order.installments}x de R$ ${(order.remaining / order.installments).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
-                  : 'À VISTA')}
-            </span>
-          </div>
-          {!isIndividualInstallment && (
-            <div className="payment-field">
-              <span className="payment-label">SINAL / ENTRADA:</span>
-              <span className="payment-value">R$ {order.paid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-            </div>
-          )}
-          <div className="payment-field">
-            <span className="payment-label">VENCIMENTO:</span>
-            <span className="payment-value">
-              {isIndividualInstallment 
-                ? formatDateToDisplay(order.date)
-                : ((order as any).firstPaymentDate ? formatDateToDisplay((order as any).firstPaymentDate) : formatDateToDisplay(order.date))}
-            </span>
-          </div>
-          <div className="payment-field" style={{gridColumn: 'span 2'}}>
-            <span className="payment-label">PENDENTE NESTE DOCUMENTO:</span>
-            <span className="payment-value" style={{fontSize: '14px'}}>R$ {realRemaining.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
-      )}
-
-      <div className="section-header" style={{marginBottom: 0}}>Observações / Transporte</div>
-      <div className="gray-bar" style={{background: 'white', fontWeight: 600, fontSize: '10px', height: 'auto', minHeight: '14px', marginBottom: '30px', border: '1px solid #e2e8f0'}}>
-        {order.carrier ? `TRANSPORTADORA: ${order.carrier}` : 'NENHUMA OBSERVAÇÃO ADICIONAL'}
-      </div>
-
-      {!isOS && (
-        <div className="signature-box">
-          <div className="signature-line"></div>
-          <p className="signature-text">Assinatura do cliente</p>
-        </div>
-      )}
-    </div>
-  );
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center">
-      <div className="w-full max-w-[210mm] mt-8 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap items-center justify-between gap-4 print-hidden">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center py-10">
+      {/* Menu de Controle Superior */}
+      <div className="w-full max-w-[210mm] mb-6 bg-white p-4 rounded-3xl shadow-lg border border-slate-200 flex items-center justify-between print-hidden">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-400">
+          <button onClick={onBack} className="p-2 bg-slate-50 hover:bg-slate-200 rounded-xl transition-all text-slate-500">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
-            {(['PEDIDO', 'ORÇAMENTO', 'ORDEM DE SERVIÇO'] as DocType[]).map((t) => (
+            {(['PEDIDO', 'ORÇAMENTO', 'ORDEM DE SERVIÇO', 'RECIBO'] as DocType[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setDocType(t)}
-                className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${docType === t ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-4 py-2 rounded-lg text-[10px] font-black tracking-widest transition-all ${docType === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 {t}
               </button>
@@ -388,26 +84,281 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={handleDownload} 
-            disabled={isGenerating} 
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all"
-          >
+          <button onClick={handleDownload} disabled={isGenerating} className="flex items-center gap-2 px-6 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 uppercase tracking-widest hover:bg-slate-50">
             {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            PDF
+            Exportar PDF
           </button>
-          <button 
-            onClick={handlePrint} 
-            className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-200"
-          >
+          <button onClick={handlePrint} className="flex items-center gap-2 px-8 py-2 bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 transition-all">
             <Printer className="w-4 h-4" />
             Imprimir
           </button>
         </div>
       </div>
 
-      <div className="w-full overflow-auto pb-20 flex justify-center">
-        {renderPedidoLayout()}
+      {/* Área do Documento A4 */}
+      <div id="printable-document" className="pdf-page">
+        <style>{`
+          .pdf-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            padding: 12mm;
+            color: #334155 !important;
+            font-family: 'Inter', sans-serif;
+            margin: 0 auto;
+            box-sizing: border-box;
+            border: 1px solid #e2e8f0;
+          }
+          
+          .header { 
+            display: flex; 
+            justify-content: space-between; 
+            border-bottom: 2px solid #cbd5e1; 
+            padding-bottom: 5mm; 
+            margin-bottom: 6mm; 
+          }
+          
+          .company-name { font-size: 14pt; font-weight: 900; text-transform: uppercase; margin: 0; color: #1e293b !important; }
+          .company-info { font-size: 8pt; line-height: 1.4; margin-top: 2mm; color: #64748b !important; font-weight: 500; }
+          
+          .doc-type-container { text-align: right; }
+          .doc-type-label { font-size: 16pt; font-weight: 900; margin: 0; color: #475569 !important; text-transform: uppercase; }
+          .doc-id-box { 
+            background: #475569; 
+            color: #fff !important; 
+            padding: 2mm 6mm; 
+            font-size: 12pt; 
+            font-weight: 900; 
+            border-radius: 3mm; 
+            margin-top: 2mm; 
+            display: inline-block; 
+          }
+          .emission-date { font-size: 7pt; font-weight: 700; margin-top: 3mm; text-transform: uppercase; color: #94a3b8 !important; }
+
+          .top-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-bottom: 6mm; }
+          .meta-box { border: 1.2pt solid #cbd5e1; padding: 3mm; border-radius: 4mm; background: #f8fafc; }
+          .meta-label { font-size: 7pt; font-weight: 900; text-transform: uppercase; display: block; color: #94a3b8 !important; margin-bottom: 1mm; }
+          .meta-value { font-size: 11pt; font-weight: 900; color: #334155 !important; }
+
+          .section-header { 
+            background: #64748b; 
+            color: #fff !important; 
+            font-size: 8pt; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            padding: 1.5mm 4mm; 
+            display: inline-block; 
+            border-radius: 2mm 2mm 0 0; 
+            margin-left: 2mm;
+          }
+          .section-content { 
+            border: 1.2pt solid #cbd5e1; 
+            padding: 5mm; 
+            margin-bottom: 6mm; 
+            border-radius: 4mm; 
+            background: white;
+          }
+
+          .field-label { font-size: 7.5pt; font-weight: 800; text-transform: uppercase; display: block; color: #94a3b8 !important; margin-bottom: 0.5mm; }
+          .field-value { font-size: 9.5pt; font-weight: 700; color: #334155 !important; display: block; min-height: 4mm; margin-bottom: 2mm; }
+
+          .items-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 6mm; border: 1.2pt solid #cbd5e1; border-radius: 4mm; overflow: hidden; }
+          .items-table th { background: #475569; color: #fff !important; font-size: 8pt; font-weight: 900; text-transform: uppercase; padding: 2.5mm; text-align: left; }
+          .items-table td { padding: 2.5mm; font-size: 9pt; border-bottom: 1pt solid #f1f5f9; color: #475569 !important; font-weight: 600; }
+          .items-table tr:last-child td { border-bottom: none; }
+          
+          .production-field {
+            border: 1.5pt dashed #cbd5e1;
+            border-radius: 4mm;
+            padding: 6mm;
+            min-height: 40mm;
+            background: #f8fafc;
+            margin-bottom: 6mm;
+          }
+
+          .text-right { text-align: right; }
+          .text-center { text-align: center; }
+
+          .totals-container { display: flex; justify-content: flex-end; margin-bottom: 6mm; }
+          .totals-table { width: 80mm; border: 1.2pt solid #cbd5e1; border-radius: 4mm; overflow: hidden; background: #f8fafc; }
+          .total-row { display: flex; justify-content: space-between; border-bottom: 1pt solid #e2e8f0; padding: 2mm 4mm; }
+          .total-row:last-child { 
+            border-bottom: none; 
+            background: #475569; 
+            color: #fff !important; 
+            padding: 3mm 4mm;
+          }
+          .total-row:last-child * { color: #fff !important; }
+
+          .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 15mm; margin-top: 15mm; margin-bottom: 8mm; }
+          .sig-line { border-top: 1.2pt solid #cbd5e1; text-align: center; padding-top: 2mm; font-size: 8pt; font-weight: 900; text-transform: uppercase; color: #94a3b8 !important; }
+
+          @media print {
+            body { background: white !important; }
+            .print-hidden { display: none !important; }
+            .pdf-page { border: none !important; padding: 5mm !important; margin: 0 !important; width: 100% !important; }
+            .doc-id-box, .section-header, .items-table th, .total-row:last-child { -webkit-print-color-adjust: exact; }
+          }
+        `}</style>
+
+        {/* Cabeçalho */}
+        <div className="header">
+          <div>
+            <h1 className="company-name">{company.name}</h1>
+            <div className="company-info">
+              <p>{company.address}, {company.city}</p>
+              <p>CNPJ: {company.taxId} | IE: {company.stateRegistration}</p>
+              <p>Email: {company.email} | Tel: {company.phone}</p>
+              <p>{company.website} | {company.instagram}</p>
+            </div>
+          </div>
+          <div className="doc-type-container">
+            <h2 className="doc-type-label">{docType}</h2>
+            <div className="doc-id-box">Nº {order.id}</div>
+            <div className="emission-date">EMISSÃO: {todayFormatted} ÀS {nowTime}</div>
+          </div>
+        </div>
+
+        {/* Metadados Superiores */}
+        <div className="top-meta">
+          <div className="meta-box">
+            <span className="meta-label">Data de Referência</span>
+            <span className="meta-value">{formatDateToDisplay(order.date) || todayFormatted}</span>
+          </div>
+          <div className="meta-box">
+            <span className="meta-label">Status Atual</span>
+            <span className="meta-value" style={{textTransform: 'uppercase'}}>{order.productionStatus || 'Em processamento'}</span>
+          </div>
+        </div>
+
+        {/* Seção de Dados do Cliente (Campos Dinâmicos) */}
+        <div className="section-header">Dados do Cliente</div>
+        <div className="section-content">
+          <div className="grid grid-cols-2 gap-x-8">
+            <div className="col-span-2">
+              <span className="field-label">Cliente / Razão Social:</span>
+              <span className="field-value">{order.customer}</span>
+            </div>
+            {order.customerTaxId && (
+              <div>
+                <span className="field-label">Documento (CPF/CNPJ):</span>
+                <span className="field-value">{order.customerTaxId}</span>
+              </div>
+            )}
+            {order.customerPhone && (
+              <div>
+                <span className="field-label">Telefone de Contato:</span>
+                <span className="field-value">{order.customerPhone}</span>
+              </div>
+            )}
+            {order.customerEmail && (
+              <div className="col-span-2">
+                <span className="field-label">E-mail:</span>
+                <span className="field-value">{order.customerEmail}</span>
+              </div>
+            )}
+            {order.customerAddress && (
+              <div className="col-span-2">
+                <span className="field-label">Endereço:</span>
+                <span className="field-value">{order.customerAddress}</span>
+              </div>
+            )}
+            {order.customerCity && (
+              <div>
+                <span className="field-label">Cidade / UF:</span>
+                <span className="field-value">{order.customerCity}</span>
+              </div>
+            )}
+            {order.customerZip && (
+              <div>
+                <span className="field-label">CEP:</span>
+                <span className="field-value">{order.customerZip}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Tabela de Itens */}
+        <table className="items-table">
+          <thead>
+            <tr>
+              <th style={{width: '10mm'}} className="text-center">#</th>
+              <th>DESCRIÇÃO DOS PRODUTOS / SERVIÇOS</th>
+              <th style={{width: '20mm'}} className="text-center">QTD</th>
+              {!isOS && <th style={{width: '30mm'}} className="text-right">VALOR UNIT.</th>}
+              {!isOS && <th style={{width: '35mm'}} className="text-right">SUBTOTAL</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {(order.items && order.items.length > 0 ? order.items : [{ description: 'Serviço Gráfico', quantity: 1, unitPrice: order.value }]).map((item, idx) => (
+              <tr key={idx}>
+                <td className="text-center text-slate-400">{(idx + 1).toString().padStart(2, '0')}</td>
+                <td style={{fontWeight: '800'}}>{item.description}</td>
+                <td className="text-center">{item.quantity}</td>
+                {!isOS && <td className="text-right">R$ {item.unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
+                {!isOS && <td className="text-right" style={{fontWeight: 900, color: '#1e293b !important'}}>R$ {(item.quantity * item.unitPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Seção Exclusiva para OS: Detalhes de Produção */}
+        {isOS && (
+          <>
+            <div className="section-header">
+              <div className="flex items-center gap-2">
+                <Wrench className="w-3 h-3" />
+                Especificações Técnicas / Produção
+              </div>
+            </div>
+            <div className="production-field">
+              <p className="text-[8px] font-bold text-slate-300 uppercase mb-4 tracking-widest">Anotações operacionais e acabamentos</p>
+              <div className="border-b border-slate-100 h-8"></div>
+              <div className="border-b border-slate-100 h-8"></div>
+              <div className="border-b border-slate-100 h-8"></div>
+            </div>
+          </>
+        )}
+
+        {/* Totais (Apenas em Pedidos/Orçamentos) */}
+        {!isOS && (
+          <div className="totals-container">
+            <div className="totals-table">
+              <div className="total-row">
+                <span className="total-label text-slate-400 font-black uppercase text-[7pt]">Subtotal:</span>
+                <span className="total-value font-bold">R$ {itemsSubtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              {order.shipping > 0 && (
+                <div className="total-row">
+                  <span className="total-label text-slate-400 font-black uppercase text-[7pt]">Frete:</span>
+                  <span className="total-value font-bold">R$ {order.shipping.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              {order.discount > 0 && (
+                <div className="total-row">
+                  <span className="total-label text-rose-400 font-black uppercase text-[7pt]">Descontos:</span>
+                  <span className="total-value text-rose-500 font-bold">R$ {order.discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
+              <div className="total-row">
+                <span className="total-label font-black uppercase text-[7.5pt]">Total Geral:</span>
+                <span className="total-value font-black text-[11pt]">R$ {order.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Assinaturas */}
+        <div className="signatures">
+          <div className="sig-line">{isOS ? "Responsável Produção" : "Assinatura do Cliente"}</div>
+          <div className="sig-line">{isOS ? "Conferência Final" : "Responsável Venda"}</div>
+        </div>
+
+        {/* Rodapé Informativo */}
+        <div className="text-[7.5pt] text-slate-400 text-center mt-10 border-t border-slate-50 pt-4">
+          <p><strong>Atenção:</strong> Este documento não é nota fiscal. Variações de cores podem ocorrer devido ao processo de impressão.</p>
+          {isOS && <p>Confira os materiais antes de liberar a entrega.</p>}
+        </div>
       </div>
     </div>
   );
