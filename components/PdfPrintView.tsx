@@ -257,6 +257,18 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
                 <span className="field-value">{order.customerAddress}</span>
               </div>
             )}
+            {order.customerCity && (
+              <div>
+                <span className="field-label">Cidade / UF:</span>
+                <span className="field-value">{order.customerCity}</span>
+              </div>
+            )}
+            {order.customerZip && (
+              <div>
+                <span className="field-label">CEP:</span>
+                <span className="field-value">{order.customerZip}</span>
+              </div>
+            )}
           </div>
         </div>
 
