@@ -231,7 +231,9 @@ export default function App() {
       setProducts([]);
       setSupplies([]);
       setAccounts(INITIAL_ACCOUNTS);
-      alert('O sistema foi limpo completamente.');
+      setCompanySettings(INITIAL_COMPANY);
+      setCarriers([]);
+      alert('O sistema foi limpo completamente e as configurações foram resetadas.');
     }
   };
 
@@ -244,12 +246,67 @@ export default function App() {
     const todayStr = getLocalDateString();
     const receberHoje = orders.filter(o => o.date === todayStr && o.remaining > 0).reduce((acc, o) => acc + o.remaining, 0);
     const pagarHoje = expenses.filter(e => e.dueDate === todayStr && e.status === 'Pendente').reduce((acc, e) => acc + e.value, 0);
-    const totalPedidosPeriodo = filteredOrdersForPeriod.filter(o => o.productionStatus !== 'Apenas Financeiro').reduce((acc, o) => acc + o.value, 0);
-    const totalReceberPeriodo = filteredOrdersForPeriod.reduce((acc, o) => acc + o.remaining, 0);
-    const totalReceberGeral = orders.reduce((acc, o) => acc + o.remaining, 0);
+    
+    // Lógica para Total de Pedidos no Período distribuindo parcelas:
+    const totalPedidosPeriodo = filteredOrdersForPeriod.reduce((acc, o) => {
+      if (o.productionStatus === 'Apenas Financeiro') {
+        // Se for uma parcela/recorrência financeira, contamos seu valor total no período correspondente
+        return acc + o.value;
+      } else {
+        // Se for um pedido de produção (o "principal"):
+        if (o.installments && o.installments > 1) {
+          // Se for parcelado, no mês da venda só contamos o que foi pago à vista (Sinal/Entrada)
+          // As parcelas futuras aparecerão como "Apenas Financeiro" nos meses seguintes
+          return acc + (o.paid || 0);
+        } else {
+          // Se não for parcelado, conta o valor total normalmente
+          return acc + o.value;
+        }
+      }
+    }, 0);
+
+    // Lógica para Total a Receber no Período:
+    const totalReceberPeriodo = filteredOrdersForPeriod.reduce((acc, o) => {
+      if (o.productionStatus === 'Apenas Financeiro') {
+        return acc + o.remaining;
+      } else {
+        if (o.installments && o.installments > 1) {
+          // Para pedidos principais parcelados, o saldo a receber já está diluído nas parcelas "Apenas Financeiro"
+          // Não somamos o remaining aqui para evitar contagem dupla
+          return acc;
+        }
+        return acc + o.remaining;
+      }
+    }, 0);
+
+    // Lógica para Total a Receber Geral:
+    const totalReceberGeral = orders.reduce((acc, o) => {
+      if (o.productionStatus === 'Apenas Financeiro') {
+        return acc + o.remaining;
+      } else {
+        if (o.installments && o.installments > 1) {
+          // Evita contagem dupla: o saldo geral virá da soma das parcelas individuais
+          return acc;
+        }
+        return acc + o.remaining;
+      }
+    }, 0);
+
     const receitas = filteredOrdersForPeriod.reduce((acc, o) => acc + o.paid, 0);
     const despesas = filteredExpensesForPeriod.filter(e => e.status === 'Pago').reduce((acc, e) => acc + e.value, 0);
-    return { receberHoje, pagarHoje, totalPedidosPeriodo, totalReceberPeriodo, totalReceberGeral, receitas, despesas, lucro: receitas - despesas, transacoesReceitas: filteredOrdersForPeriod.filter(o => o.paid > 0).length, transacoesDespesas: filteredExpensesForPeriod.filter(e => e.status === 'Pago').length };
+    
+    return { 
+      receberHoje, 
+      pagarHoje, 
+      totalPedidosPeriodo, 
+      totalReceberPeriodo, 
+      totalReceberGeral, 
+      receitas, 
+      despesas, 
+      lucro: receitas - despesas, 
+      transacoesReceitas: filteredOrdersForPeriod.filter(o => o.paid > 0).length, 
+      transacoesDespesas: filteredExpensesForPeriod.filter(e => e.status === 'Pago').length 
+    };
   }, [filteredOrdersForPeriod, filteredExpensesForPeriod, orders, expenses]);
 
   const handleSaveCustomer = (customerData: any) => {
@@ -289,17 +346,17 @@ export default function App() {
 
       if (installments > 1) {
         const installmentValue = remainingValue / installments;
-        const mainOrder: Order = { ...orderData, id: baseId, value: totalValue, paid: entry, remaining: remainingValue, status: entry >= totalValue ? 'Pago' : 'Pendente', productionStatus: orderData.productionStatus || 'Pedido em aberto' };
+        const mainOrder: Order = { ...orderData, id: baseId, value: totalValue, paid: entry, remaining: remainingValue, status: entry >= totalValue ? 'Pago' : 'Pendente', productionStatus: orderData.productionStatus || 'Pedido em aberto', installments: installments };
         const financialRecurrences: Order[] = [];
         for (let i = 0; i < installments; i++) {
-          financialRecurrences.push({ ...orderData, id: `${baseId}-P${i + 1}`, date: getRecurrenceDate(firstPayDate, 'Mensal', i), value: installmentValue, paid: 0, remaining: installmentValue, status: 'Pendente', productionStatus: 'Apenas Financeiro', items: [{ description: `Parcela ${i + 1}/${installments} ref. Pedido #${baseId}`, quantity: 1, unitPrice: installmentValue }] });
+          financialRecurrences.push({ ...orderData, id: `${baseId}-P${i + 1}`, date: getRecurrenceDate(firstPayDate, 'Mensal', i), value: installmentValue, paid: 0, remaining: installmentValue, status: 'Pendente', productionStatus: 'Apenas Financeiro', items: [{ description: `Parcela ${i + 1}/${installments} ref. Pedido #${baseId}`, quantity: 1, unitPrice: installmentValue }], installments: 1 });
         }
         setOrders(prev => [mainOrder, ...financialRecurrences, ...prev]);
         if (entry > 0 && orderData.accountName) {
           setAccounts(prev => prev.map(acc => acc.name === orderData.accountName ? { ...acc, balance: acc.balance + entry } : acc));
         }
       } else {
-        const order: Order = { id: baseId, date: currentDate, ...orderData };
+        const order: Order = { id: baseId, date: currentDate, ...orderData, installments: 1 };
         setOrders(prev => [order, ...prev]);
         if (orderData.paid > 0 && orderData.accountName) {
           setAccounts(prev => prev.map(acc => acc.name === orderData.accountName ? { ...acc, balance: acc.balance + orderData.paid } : acc));
@@ -339,11 +396,11 @@ export default function App() {
         setAccounts(prev => prev.map(acc => acc.name === data.accountName ? { ...acc, balance: acc.balance - data.value } : acc));
       }
     } else {
-      const newOrder: Order = { id: `REC-${id}`, customer: 'Lançamento Avulso', value: data.value, paid: data.status === 'Pago' ? data.value : 0, remaining: data.status === 'Pago' ? 0 : data.value, date: data.dueDate, status: data.status, productionStatus: 'Apenas Financeiro', items: [{ description: data.description, quantity: data.quantity, unitPrice: data.unitPrice }], paymentMethod: data.paymentMethod, accountName: data.accountName };
+      const newOrder: Order = { id: `REC-${id}`, customer: 'Lançamento Avulso', value: data.value, paid: data.status === 'Pago' ? data.value : 0, remaining: data.status === 'Pago' ? 0 : data.value, date: data.dueDate, status: data.status, productionStatus: 'Apenas Financeiro', items: [{ description: data.description, quantity: data.quantity, unitPrice: data.unitPrice }], paymentMethod: data.paymentMethod, accountName: data.accountName, installments: 1 };
       if (data.isRecurring && data.recurrenceFrequency && data.recurrenceCount) {
         const recurrences: Order[] = [];
         for (let i = 1; i < data.recurrenceCount; i++) {
-          recurrences.push({ ...newOrder, id: `REC-${id}-R${i}`, date: getRecurrenceDate(data.dueDate, data.recurrenceFrequency, i), paid: 0, remaining: data.value, status: 'Pendente' });
+          recurrences.push({ ...newOrder, id: `REC-${id}-R${i}`, date: getRecurrenceDate(data.dueDate, data.recurrenceFrequency, i), paid: 0, remaining: data.value, status: 'Pendente', installments: 1 });
         }
         setOrders(prev => [...prev, newOrder, ...recurrences]);
       } else {
