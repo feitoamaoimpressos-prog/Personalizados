@@ -233,63 +233,72 @@ export default function App() {
     return saved ? JSON.parse(saved) : { start: firstDay, end: lastDay };
   });
   
+  // Refatoração dos initializers para evitar sobrescrita se a lista estiver vazia por escolha do usuário
   const [products, setProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('products');
+    if (saved === null) return INITIAL_PRODUCTS; // Primeira vez usando o app
     try {
-      const saved = localStorage.getItem('products');
-      return (saved && JSON.parse(saved).length > 5) ? JSON.parse(saved) : INITIAL_PRODUCTS;
+      return JSON.parse(saved);
     } catch { return INITIAL_PRODUCTS; }
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
+    const saved = localStorage.getItem('orders');
+    if (saved === null) return [];
     try {
-      const saved = localStorage.getItem('orders');
-      return saved ? JSON.parse(saved) : [];
+      return JSON.parse(saved);
     } catch { return []; }
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const saved = localStorage.getItem('expenses');
+    if (saved === null) return [];
     try {
-      const saved = localStorage.getItem('expenses');
-      return saved ? JSON.parse(saved) : [];
+      return JSON.parse(saved);
     } catch { return []; }
   });
 
   const [accounts, setAccounts] = useState<BankAccount[]>(() => {
+    const saved = localStorage.getItem('accounts');
+    if (saved === null) return INITIAL_ACCOUNTS;
     try {
-      const saved = localStorage.getItem('accounts');
-      return saved ? JSON.parse(saved) : INITIAL_ACCOUNTS;
+      return JSON.parse(saved);
     } catch { return INITIAL_ACCOUNTS; }
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
+    const saved = localStorage.getItem('customers');
+    if (saved === null) return INITIAL_CUSTOMERS; // Primeira vez usando o app
     try {
-      const saved = localStorage.getItem('customers');
-      return (saved && JSON.parse(saved).length > 1) ? JSON.parse(saved) : INITIAL_CUSTOMERS;
+      return JSON.parse(saved);
     } catch { return INITIAL_CUSTOMERS; }
   });
 
   const [supplies, setSupplies] = useState<Supply[]>(() => {
+    const saved = localStorage.getItem('supplies');
+    if (saved === null) return [];
     try {
-      const saved = localStorage.getItem('supplies');
-      return saved ? JSON.parse(saved) : [];
+      return JSON.parse(saved);
     } catch { return []; }
   });
 
   const [companySettings, setCompanySettings] = useState<CompanySettings>(() => {
+    const saved = localStorage.getItem('companySettings');
+    if (saved === null) return INITIAL_COMPANY;
     try {
-      const saved = localStorage.getItem('companySettings');
-      return saved ? JSON.parse(saved) : INITIAL_COMPANY;
+      return JSON.parse(saved);
     } catch { return INITIAL_COMPANY; }
   });
 
   const [carriers, setCarriers] = useState<Carrier[]>(() => {
+    const saved = localStorage.getItem('carriers');
+    if (saved === null) return [];
     try {
-      const saved = localStorage.getItem('carriers');
-      return saved ? JSON.parse(saved) : [];
+      return JSON.parse(saved);
     } catch { return []; }
   });
 
-  // Efeito de persistência automática global
+  // Efeito de persistência automática global - agora salva SEMPRE que houver alteração
   useEffect(() => { 
     try {
       localStorage.setItem('products', JSON.stringify(products)); 
@@ -305,7 +314,7 @@ export default function App() {
       localStorage.setItem('hideValues', String(hideValues));
       setLastSaved(new Date());
     } catch (e) {
-      console.error("Erro crítico ao salvar dados:", e);
+      console.error("Erro ao salvar dados localmente:", e);
     }
   }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues]);
 
@@ -362,12 +371,12 @@ export default function App() {
     
     if (type === 'orders') {
       setOrders([]);
-      alert('Todos os pedidos foram removidos.');
     } else if (type === 'financeiro') {
       setExpenses([]);
       setAccounts(INITIAL_ACCOUNTS);
-      alert('Dados financeiros e saldos foram resetados.');
     } else if (type === 'all') {
+      // Limpa o localStorage para forçar o recarregamento dos INITIAL_... no próximo refresh ou imediatamente
+      localStorage.clear();
       setOrders([]);
       setExpenses([]);
       setCustomers(INITIAL_CUSTOMERS);
@@ -376,8 +385,11 @@ export default function App() {
       setAccounts(INITIAL_ACCOUNTS);
       setCompanySettings(INITIAL_COMPANY);
       setCarriers([]);
-      alert('O sistema foi limpo completamente. As listas oficiais de clientes e produtos foram reiniciadas.');
+      alert('O sistema foi limpo e as listas oficiais foram restauradas.');
+      window.location.reload(); // Recarrega para limpar todos os estados e referências
+      return;
     }
+    alert('Operação concluída.');
   };
 
   const STAGES = ['Pedido em aberto', 'Criando arte', 'Pedido em produção', 'Pedido em transporte', 'Pedido entregue'] as const;
