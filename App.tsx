@@ -13,16 +13,18 @@ import { CategoriesGrid } from './components/CategoriesGrid';
 import { OrdersGrid } from './components/OrdersGrid';
 import { HistoryGrid } from './components/HistoryGrid';
 import { SettingsGrid } from './components/SettingsGrid';
+import { SuppliesGrid } from './components/SuppliesGrid';
 import { NewOrderModal } from './components/NewOrderModal';
 import { NewProductModal } from './components/NewProductModal';
 import { TransferModal } from './components/TransferModal';
 import { NewAccountModal } from './components/NewAccountModal';
 import { NewTransactionModal } from './components/NewTransactionModal';
 import { NewCustomerModal } from './components/NewCustomerModal';
+import { NewSupplyModal } from './components/NewSupplyModal';
 import { PdfPrintView } from './components/PdfPrintView';
 import { OrderDetailView } from './components/OrderDetailView';
-import { FinancialStats, BankAccount, ViewType, Product, Order, Expense, Customer, CompanySettings, Carrier } from './types';
-import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History, LayoutGrid } from 'lucide-react';
+import { FinancialStats, BankAccount, ViewType, Product, Order, Expense, Customer, CompanySettings, Carrier, Supply } from './types';
+import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History, LayoutGrid, Layers } from 'lucide-react';
 
 const INITIAL_ACCOUNTS: BankAccount[] = [
   { id: '1', name: 'Caixa Geral', type: 'Caixa', balance: 0.00 },
@@ -123,6 +125,13 @@ export default function App() {
     } catch { return INITIAL_CUSTOMERS; }
   });
 
+  const [supplies, setSupplies] = useState<Supply[]>(() => {
+    try {
+      const saved = localStorage.getItem('supplies');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
   const [companySettings, setCompanySettings] = useState<CompanySettings>(() => {
     try {
       const saved = localStorage.getItem('companySettings');
@@ -145,6 +154,7 @@ export default function App() {
       localStorage.setItem('expenses', JSON.stringify(expenses));
       localStorage.setItem('accounts', JSON.stringify(accounts));
       localStorage.setItem('customers', JSON.stringify(customers));
+      localStorage.setItem('supplies', JSON.stringify(supplies));
       localStorage.setItem('companySettings', JSON.stringify(companySettings));
       localStorage.setItem('carriers', JSON.stringify(carriers));
       localStorage.setItem('activeView', activeView);
@@ -154,22 +164,26 @@ export default function App() {
     } catch (e) {
       console.error("Erro crítico ao salvar dados:", e);
     }
-  }, [products, orders, expenses, accounts, customers, companySettings, carriers, activeView, dateRange, hideValues]);
+  }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues]);
 
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
+  const [isNewSupplyModalOpen, setIsNewSupplyModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
   const [isNewTransactionModalOpen, setIsNewTransactionModalOpen] = useState(false);
+  
   const [orderToEdit, setOrderToEdit] = useState<Order | null>(null);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
+  const [supplyToEdit, setSupplyToEdit] = useState<Supply | null>(null);
+  
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
   const handleExportData = () => {
-    const fullData = { products, orders, expenses, accounts, customers, companySettings, carriers };
+    const fullData = { products, orders, expenses, accounts, customers, supplies, companySettings, carriers };
     const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -189,6 +203,7 @@ export default function App() {
         if (data.expenses) setExpenses(data.expenses);
         if (data.accounts) setAccounts(data.accounts);
         if (data.customers) setCustomers(data.customers);
+        if (data.supplies) setSupplies(data.supplies);
         if (data.companySettings) setCompanySettings(data.companySettings);
         if (data.carriers) setCarriers(data.carriers);
         alert('Backup restaurado com sucesso!');
@@ -214,6 +229,7 @@ export default function App() {
       setExpenses([]);
       setCustomers(INITIAL_CUSTOMERS);
       setProducts([]);
+      setSupplies([]);
       setAccounts(INITIAL_ACCOUNTS);
       alert('O sistema foi limpo completamente.');
     }
@@ -245,6 +261,17 @@ export default function App() {
     }
     setIsNewCustomerModalOpen(false);
     setCustomerToEdit(null);
+  };
+
+  const handleSaveSupply = (supplyData: any) => {
+    if (supplyToEdit) {
+      setSupplies(prev => prev.map(s => s.id === supplyToEdit.id ? { ...s, ...supplyData, id: s.id } : s).sort((a, b) => a.name.localeCompare(b.name)));
+    } else {
+      const supply: Supply = { id: Math.random().toString(36).substr(2, 9), ...supplyData };
+      setSupplies(prev => [supply, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+    setIsNewSupplyModalOpen(false);
+    setSupplyToEdit(null);
   };
 
   const handleSaveOrder = (orderData: any) => {
@@ -365,6 +392,7 @@ export default function App() {
     { id: 'producao', label: 'Produção', icon: Package },
     { id: 'pedidos', label: 'Pedidos', icon: ShoppingCart },
     { id: 'financeiro', label: 'Financeiro', icon: LayoutDashboard },
+    { id: 'insumos', label: 'Insumos', icon: Layers },
     { id: 'historico', label: 'Histórico', icon: History },
     { id: 'clientes', label: 'Clientes', icon: Users },
     { id: 'produtos', label: 'Produtos', icon: Box },
@@ -404,6 +432,7 @@ export default function App() {
                   <BankAccounts accounts={accounts} hideValues={hideValues} onOpenTransfer={() => setIsTransferModalOpen(true)} onOpenNewAccount={() => setIsNewAccountModalOpen(true)} onDeleteAccount={(id) => setAccounts(prev => prev.filter(acc => acc.id !== id))} />
                 </div>
               )}
+              {activeView === 'insumos' && <SuppliesGrid supplies={supplies} onNewSupply={() => setIsNewSupplyModalOpen(true)} onEditSupply={(s) => { setSupplyToEdit(s); setIsNewSupplyModalOpen(true); }} onDeleteSupply={(id) => setSupplies(prev => prev.filter(s => s.id !== id))} />}
               {activeView === 'historico' && <HistoryGrid orders={filteredOrdersForPeriod} onViewOrder={setViewingOrder} />}
               {activeView === 'clientes' && <CustomersGrid customers={customers} onNewCustomer={() => setIsNewCustomerModalOpen(true)} onEditCustomer={(c) => { setCustomerToEdit(c); setIsNewCustomerModalOpen(true); }} onDeleteCustomer={(id) => setCustomers(prev => prev.filter(c => c.id !== id))} />}
               {activeView === 'produtos' && <ProductsGrid products={products} onNewProduct={() => setIsNewProductModalOpen(true)} onEditProduct={(p) => { setProductToEdit(p); setIsNewProductModalOpen(true); }} onDeleteProduct={(id) => setProducts(prev => prev.filter(p => p.id !== id))} />}
@@ -417,6 +446,7 @@ export default function App() {
       <NewOrderModal isOpen={isNewOrderModalOpen} orderToEdit={orderToEdit} onClose={() => {setIsNewOrderModalOpen(false); setOrderToEdit(null);}} onSave={handleSaveOrder} customers={customers} products={products} accounts={accounts} carriers={carriers} />
       <NewProductModal isOpen={isNewProductModalOpen} productToEdit={productToEdit} onClose={() => { setIsNewProductModalOpen(false); setProductToEdit(null); }} onSave={handleSaveProduct} configuredMaterials={companySettings.materials} configuredCategories={companySettings.categories} />
       <NewCustomerModal isOpen={isNewCustomerModalOpen} customerToEdit={customerToEdit} onClose={() => { setIsNewCustomerModalOpen(false); setCustomerToEdit(null); }} onSave={handleSaveCustomer} />
+      <NewSupplyModal isOpen={isNewSupplyModalOpen} supplyToEdit={supplyToEdit} onClose={() => { setIsNewSupplyModalOpen(false); setSupplyToEdit(null); }} onSave={handleSaveSupply} />
       <NewAccountModal isOpen={isNewAccountModalOpen} onClose={() => setIsNewAccountModalOpen(false)} onSave={(acc) => setAccounts(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), ...acc }])} />
       <TransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} accounts={accounts} onTransfer={(fromId, toId, amount) => setAccounts(prev => prev.map(acc => acc.id === fromId ? { ...acc, balance: acc.balance - amount } : acc.id === toId ? { ...acc, balance: acc.balance + amount } : acc))} />
       <NewTransactionModal isOpen={isNewTransactionModalOpen} onClose={() => setIsNewTransactionModalOpen(false)} accounts={accounts} products={products} expenseCategories={companySettings.expenseCategories} onSave={handleSaveTransaction} />

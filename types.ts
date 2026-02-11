@@ -116,6 +116,18 @@ export interface Product {
   finishing?: string;
 }
 
+export interface Supply {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  minQuantity: number;
+  unit: string;
+  costPrice: number;
+  supplier?: string;
+  lastRestock?: string;
+}
+
 export interface Carrier {
   id: string;
   name: string;
@@ -126,4 +138,4 @@ export interface Carrier {
   status: 'Ativo' | 'Inativo';
 }
 
-export type ViewType = 'financeiro' | 'producao' | 'clientes' | 'produtos' | 'categorias' | 'pedidos' | 'configuracoes' | 'pdf' | 'historico';
+export type ViewType = 'financeiro' | 'producao' | 'clientes' | 'produtos' | 'categorias' | 'pedidos' | 'configuracoes' | 'pdf' | 'historico' | 'insumos';
