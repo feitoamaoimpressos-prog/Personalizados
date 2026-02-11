@@ -3,6 +3,7 @@ import { Printer, Download, ArrowLeft, Loader2, Wrench } from 'lucide-react';
 import { Order, CompanySettings } from '../types';
 
 const loadHtml2Pdf = async () => {
+  // @ts-ignore
   const html2pdf = (await import('https://esm.sh/html2pdf.js')).default;
   return html2pdf;
 };
@@ -319,16 +320,16 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
                 <span className="total-label text-slate-400 font-black uppercase text-[7pt]">Subtotal:</span>
                 <span className="total-value font-bold">R$ {itemsSubtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
               </div>
-              {order.shipping > 0 && (
+              {(order.shipping ?? 0) > 0 && (
                 <div className="total-row">
                   <span className="total-label text-slate-400 font-black uppercase text-[7pt]">Frete:</span>
-                  <span className="total-value font-bold">R$ {order.shipping.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  <span className="total-value font-bold">R$ {(order.shipping ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
-              {order.discount > 0 && (
+              {(order.discount ?? 0) > 0 && (
                 <div className="total-row">
                   <span className="total-label text-rose-400 font-black uppercase text-[7pt]">Descontos:</span>
-                  <span className="total-value text-rose-500 font-bold">R$ {order.discount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  <span className="total-value text-rose-500 font-bold">R$ {(order.discount ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
               <div className="total-row">

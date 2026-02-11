@@ -1,6 +1,4 @@
-
 import React, { useState, useEffect } from 'react';
-/* Added Layers and Info to the imports */
 import { X, Box, Tag, Layers, Database, Save, ChevronDown, Loader2, Ruler, BoxSelect, Sparkles, TrendingDown, Percent, Info, DollarSign } from 'lucide-react';
 import { Product } from '../types';
 
@@ -214,7 +212,9 @@ export const NewProductModal: React.FC<NewProductModalProps> = ({
             <div className="flex items-center gap-2 mb-6">
               <DollarSign className="w-4 h-4 text-emerald-600" />
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Card de Precificação</h3>
-              <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" title="Configure seus custos para calcular a margem real." />
+              <span title="Configure seus custos para calcular a margem real.">
+                <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
