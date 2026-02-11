@@ -368,6 +368,12 @@ export default function App() {
     setOrderToEdit(null);
   };
 
+  const handleDeleteOrder = (orderId: string) => {
+    if (window.confirm('Deseja realmente excluir este pedido? Esta ação não pode ser desfeita.')) {
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+    }
+  };
+
   const handleSaveProduct = (productData: any) => {
     if (productToEdit) {
       setProducts(prev => prev.map(p => p.id === productToEdit.id ? { ...p, ...productData, id: p.id } : p).sort((a, b) => a.name.localeCompare(b.name)));
@@ -476,8 +482,8 @@ export default function App() {
               ))}
             </div>
             <div className="mt-8">
-              {activeView === 'producao' && <ProductionGrid orders={filteredOrdersForPeriod} onViewOrder={setViewingOrder} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} onAdvanceStage={handleAdvanceStage} />}
-              {activeView === 'pedidos' && <OrdersGrid orders={filteredOrdersForPeriod} onNewOrder={() => setIsNewOrderModalOpen(true)} onViewOrder={setViewingOrder} onPrintOrder={(o) => {setViewingOrder(o); setIsPrinting(true);}} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} />}
+              {activeView === 'producao' && <ProductionGrid orders={filteredOrdersForPeriod} onViewOrder={setViewingOrder} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} onAdvanceStage={handleAdvanceStage} onDeleteOrder={handleDeleteOrder} />}
+              {activeView === 'pedidos' && <OrdersGrid orders={filteredOrdersForPeriod} onNewOrder={() => setIsNewOrderModalOpen(true)} onViewOrder={setViewingOrder} onPrintOrder={(o) => {setViewingOrder(o); setIsPrinting(true);}} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} onDeleteOrder={handleDeleteOrder} />}
               {activeView === 'financeiro' && (
                 <div className="space-y-8">
                   <QuickStats stats={calculatedStats} hideValues={hideValues} />

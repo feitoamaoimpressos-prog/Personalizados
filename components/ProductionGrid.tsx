@@ -10,9 +10,10 @@ interface ProductionGridProps {
   onEditOrder: (order: Order) => void;
   onSettleOrder: (orderId: string) => void;
   onAdvanceStage: (orderId: string) => void;
+  onDeleteOrder: (orderId: string) => void;
 }
 
-export const ProductionGrid: React.FC<ProductionGridProps> = ({ orders, onViewOrder, onEditOrder, onSettleOrder, onAdvanceStage }) => {
+export const ProductionGrid: React.FC<ProductionGridProps> = ({ orders, onViewOrder, onEditOrder, onSettleOrder, onAdvanceStage, onDeleteOrder }) => {
   const cards = [
     {
       id: 'aberto',
@@ -70,6 +71,7 @@ export const ProductionGrid: React.FC<ProductionGridProps> = ({ orders, onViewOr
                 onEditOrder={onEditOrder} 
                 onSettleOrder={onSettleOrder} 
                 onAdvanceStage={onAdvanceStage}
+                onDeleteOrder={onDeleteOrder}
               />
             ) : (
               <div className="flex-1 flex items-center justify-center flex-col gap-2 opacity-30">

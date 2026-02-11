@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ShoppingCart, Search, Plus, Calendar, Printer, Eye, Edit3, DollarSign } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Calendar, Printer, Eye, Edit3, DollarSign, Trash2 } from 'lucide-react';
 import { Order } from '../types';
 
 interface OrdersGridProps {
@@ -10,9 +10,10 @@ interface OrdersGridProps {
   onPrintOrder: (order: Order) => void;
   onEditOrder: (order: Order) => void;
   onSettleOrder: (orderId: string) => void;
+  onDeleteOrder: (orderId: string) => void;
 }
 
-export const OrdersGrid: React.FC<OrdersGridProps> = ({ orders, onNewOrder, onViewOrder, onPrintOrder, onEditOrder, onSettleOrder }) => {
+export const OrdersGrid: React.FC<OrdersGridProps> = ({ orders, onNewOrder, onViewOrder, onPrintOrder, onEditOrder, onSettleOrder, onDeleteOrder }) => {
   const getStatusStyle = (status: string | undefined) => {
     switch (status) {
       case 'Pedido em aberto': return 'bg-blue-100 text-blue-700';
@@ -137,6 +138,13 @@ export const OrdersGrid: React.FC<OrdersGridProps> = ({ orders, onNewOrder, onVi
                         title="Imprimir"
                       >
                         <Printer className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); onDeleteOrder(order.id); }}
+                        className="p-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all text-rose-500 border border-rose-100"
+                        title="Excluir Pedido"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>

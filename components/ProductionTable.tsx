@@ -1,6 +1,6 @@
-// Add missing React import to fix namespace error
+
 import React from 'react';
-import { CheckCircle2, Eye, Edit3, DollarSign } from 'lucide-react';
+import { CheckCircle2, Eye, Edit3, DollarSign, Trash2 } from 'lucide-react';
 import { Order } from '../types';
 
 interface ProductionTableProps {
@@ -9,9 +9,10 @@ interface ProductionTableProps {
   onEditOrder: (order: Order) => void;
   onSettleOrder: (orderId: string) => void;
   onAdvanceStage: (orderId: string) => void;
+  onDeleteOrder: (orderId: string) => void;
 }
 
-export const ProductionTable: React.FC<ProductionTableProps> = ({ orders, onViewOrder, onEditOrder, onSettleOrder, onAdvanceStage }) => {
+export const ProductionTable: React.FC<ProductionTableProps> = ({ orders, onViewOrder, onEditOrder, onSettleOrder, onAdvanceStage, onDeleteOrder }) => {
   return (
     <div className="w-full overflow-x-auto">
       <table className="w-full text-left">
@@ -70,6 +71,13 @@ export const ProductionTable: React.FC<ProductionTableProps> = ({ orders, onView
                     title="Visualizar Detalhes"
                   >
                     <Eye className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onDeleteOrder(order.id); }}
+                    className="text-rose-400 hover:text-rose-600 transition-all p-1.5 hover:bg-rose-50 rounded-lg"
+                    title="Excluir Pedido"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </td>
