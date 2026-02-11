@@ -49,12 +49,155 @@ const INITIAL_COMPANY: CompanySettings = {
   dashboardSubtitle: 'Personalizados FEITO A MÃO',
   dashboardGreeting: 'Olá, Bem-vindo de volta!',
   materials: ['Couchê 250g', 'Couchê 300g', 'Lona 440g', 'Vinil Adesivo', 'Papel Offset 90g'],
-  categories: ['Papelaria', 'Grandes Formatos', 'Brindes', 'Comunicação Visual', 'Outros'],
+  categories: ['Impressão', 'Adesivos', 'Personalizados', 'Encadernação', 'Outros'],
   expenseCategories: ['Fornecedor', 'Aluguel', 'Luz/Água', 'Marketing', 'Manutenção', 'Salários', 'Impostos', 'Outros']
 };
 
+const INITIAL_PRODUCTS: Product[] = [
+  { id: 'p1', name: 'Adesivo Fotográfico A4', category: 'Impressão', price: 7.00, costPrice: 1.90, stock: 0, status: 'Disponível' },
+  { id: 'p2', name: 'Adesivo Fotográfico A4 - Atacado', category: 'Impressão', price: 5.50, costPrice: 1.90, stock: 0, status: 'Disponível' },
+  { id: 'p3', name: 'Adesivo Marmitex 220gr', category: 'Impressão', price: 0.90, costPrice: 0.51, stock: 0, status: 'Disponível' },
+  { id: 'p4', name: 'Adesivo Vinil - 1 - 3x1,5cm + meio corte', category: 'Adesivos', price: 0.25, costPrice: 0.10, stock: 0, status: 'Disponível' },
+  { id: 'p5', name: 'Adesivo Vinil - 2 - 4x2cm + meio corte', category: 'Adesivos', price: 0.35, costPrice: 0.10, stock: 0, status: 'Disponível' },
+  { id: 'p6', name: 'Adesivo Vinil - 3 - 6,5x3,5cm + meio corte', category: 'Adesivos', price: 0.50, costPrice: 0.15, stock: 0, status: 'Disponível' },
+  { id: 'p7', name: 'Adesivo Vinil - 4 - 7x3cm + meio corte', category: 'Adesivos', price: 0.65, costPrice: 0.15, stock: 0, status: 'Disponível' },
+  { id: 'p8', name: 'Adesivo Vinil - 5 - 8,8x5,8cm + meio corte', category: 'Adesivos', price: 0.70, costPrice: 0.15, stock: 0, status: 'Disponível' },
+  { id: 'p9', name: 'Adesivo Vinil - 6 - 10x7cm + meio corte', category: 'Adesivos', price: 1.97, costPrice: 0.51, stock: 0, status: 'Disponível' },
+  { id: 'p10', name: 'Adesivo Vinil - 7 - 20x10+ meio corte', category: 'Adesivos', price: 10.00, costPrice: 1.90, stock: 0, status: 'Disponível' },
+  { id: 'p11', name: 'Adesivo Vinil - Metro 60cm', category: 'Impressão', price: 95.00, costPrice: 36.00, stock: 0, status: 'Disponível' },
+  { id: 'p12', name: 'Agenda 2025 - A5 - 2DPP - Promoção', category: 'Impressão', price: 50.00, costPrice: 26.00, stock: 0, status: 'Disponível' },
+  { id: 'p13', name: 'Agenda 2026 - A5 - 2DPP', category: 'Impressão', price: 60.00, costPrice: 26.00, stock: 0, status: 'Disponível' },
+  { id: 'p14', name: 'Agenda Escolar A6', category: 'Impressão', price: 30.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p15', name: 'Bandeirola até 10 letras', category: 'Personalizados', price: 25.00, costPrice: 10.24, stock: 0, status: 'Disponível' },
+  { id: 'p16', name: 'Banner 60x90 - Com bastão e cordão', category: 'Impressão', price: 115.00, costPrice: 60.00, stock: 0, status: 'Disponível' },
+  { id: 'p17', name: 'Bloco A5 - 1 via papel 75g', category: 'Impressão', price: 14.00, costPrice: 5.70, stock: 0, status: 'Disponível' },
+  { id: 'p18', name: 'Bloco A6 - 1 via - 10 un.', category: 'Impressão', price: 110.00, costPrice: 41.00, stock: 0, status: 'Disponível' },
+  { id: 'p19', name: 'Bloco A6 - 1 via - 20 un.', category: 'Impressão', price: 180.00, costPrice: 82.00, stock: 0, status: 'Disponível' },
+  { id: 'p20', name: 'Bloco de comanda Garçon - 7,5x11 2 vias + Carbono', category: 'Impressão', price: 4.50, costPrice: 2.40, stock: 0, status: 'Disponível' },
+  { id: 'p21', name: 'Bloco10x14 - 100 Folhas - Wire-o - Capa 180', category: 'Impressão', price: 7.60, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p22', name: 'Bloco10x14 - 50 Folhas - Wire-o - Capa 180', category: 'Impressão', price: 5.60, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p23', name: 'Bombonieri', category: 'Impressão', price: 13.90, costPrice: 5.46, stock: 0, status: 'Disponível' },
+  { id: 'p24', name: 'Caderneta de Vacinação - 15x21 - Espiral - Promoção', category: 'Personalizados', price: 50.00, costPrice: 23.00, stock: 0, status: 'Disponível' },
+  { id: 'p25', name: 'Caderno Escolar A5 - Brochura', category: 'Impressão', price: 30.00, costPrice: 10.97, stock: 0, status: 'Disponível' },
+  { id: 'p26', name: 'Caderno Escolar A5 - Wire-o', category: 'Impressão', price: 45.00, costPrice: 16.35, stock: 0, status: 'Disponível' },
+  { id: 'p27', name: 'Caderno Escolar Universitário - Brochura', category: 'Impressão', price: 45.00, costPrice: 25.00, stock: 0, status: 'Disponível' },
+  { id: 'p28', name: 'Caderno Espiral - 25x18', category: 'Impressão', price: 80.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p29', name: 'Caixa Granada Exército', category: 'Impressão', price: 6.00, costPrice: 2.50, stock: 0, status: 'Disponível' },
+  { id: 'p30', name: 'Caixa Kit Lanche', category: 'Impressão', price: 17.60, costPrice: 9.82, stock: 0, status: 'Disponível' },
+  { id: 'p31', name: 'Caixa Milk Básica', category: 'Personalizados', price: 4.20, costPrice: 1.58, stock: 0, status: 'Disponível' },
+  { id: 'p32', name: 'Caixa Milk Semi-Luxo', category: 'Personalizados', price: 4.70, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p33', name: 'Caixa Mochila do Exército', category: 'Impressão', price: 6.00, costPrice: 2.50, stock: 0, status: 'Disponível' },
+  { id: 'p34', name: 'Caixa Personalizada', category: 'Impressão', price: 4.70, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p35', name: 'Caixa Regador', category: 'Personalizados', price: 8.00, costPrice: 3.00, stock: 0, status: 'Disponível' },
+  { id: 'p36', name: 'Caixa Roda Gigante', category: 'Personalizados', price: 8.00, costPrice: 3.00, stock: 0, status: 'Disponível' },
+  { id: 'p37', name: 'Caneca', category: 'Impressão', price: 50.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p38', name: 'Cardápio A4 -Plastificado 8 pág. Frente e Verso', category: 'Impressão', price: 28.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p39', name: 'Cartão de Visita - 4x1 - 250g Verniz Frente - 1000 Un.', category: 'Impressão', price: 110.00, costPrice: 64.87, stock: 0, status: 'Disponível' },
+  { id: 'p40', name: 'Cartão de Visita - 4x4 - 250g Verniz Frente - 1000 Un.', category: 'Impressão', price: 125.00, costPrice: 72.69, stock: 0, status: 'Disponível' },
+  { id: 'p41', name: 'Centro de Mesa Sextavado', category: 'Personalizados', price: 8.00, costPrice: 4.73, stock: 0, status: 'Disponível' },
+  { id: 'p42', name: 'Chaveiro de Acrílico 3x4', category: 'Personalizados', price: 10.00, costPrice: 3.65, stock: 0, status: 'Disponível' },
+  { id: 'p43', name: 'Chaveiro Fio de Malha com tag', category: 'Impressão', price: 10.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p44', name: 'Diario de Oração', category: 'Impressão', price: 50.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p45', name: 'Display de Mesa', category: 'Personalizados', price: 8.00, costPrice: 2.50, stock: 0, status: 'Disponível' },
+  { id: 'p46', name: 'Encadernação até 150 folhas', category: 'Encadernação', price: 10.00, costPrice: 2.00, stock: 0, status: 'Disponível' },
+  { id: 'p47', name: 'Esfera de Natal - Bolinha Avulsa', category: 'Impressão', price: 6.00, costPrice: 2.00, stock: 0, status: 'Disponível' },
+  { id: 'p48', name: 'Etiquetas Escolares Kit 1 - 43 un.', category: 'Adesivos', price: 25.00, costPrice: 4.93, stock: 0, status: 'Disponível' },
+  { id: 'p49', name: 'Etiquetas Escolares Kit 2 - 86 un.', category: 'Adesivos', price: 35.00, costPrice: 6.81, stock: 0, status: 'Disponível' },
+  { id: 'p50', name: 'Etiquetas Escolares Kit 3 - 120 un.', category: 'Adesivos', price: 45.00, costPrice: 8.95, stock: 0, status: 'Disponível' },
+  { id: 'p51', name: 'Kit Agenda + Caderno', category: 'Impressão', price: 90.00, costPrice: 45.00, stock: 0, status: 'Disponível' },
+  { id: 'p52', name: 'Kit Esfera de Natal - Bolinha', category: 'Impressão', price: 18.00, costPrice: 6.00, stock: 0, status: 'Disponível' },
+  { id: 'p53', name: 'Kit M Festa na Mesa', category: 'Impressão', price: 106.25, costPrice: 25.00, stock: 0, status: 'Disponível' },
+  { id: 'p54', name: 'Kit P Festa na Mesa', category: 'Impressão', price: 60.00, costPrice: 20.00, stock: 0, status: 'Disponível' },
+  { id: 'p55', name: 'Kit pegue e monte 30 peças', category: 'Impressão', price: 90.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p56', name: 'Mini Caderno A6', category: 'Impressão', price: 18.00, costPrice: 6.00, stock: 0, status: 'Disponível' },
+  { id: 'p57', name: 'Nossa Senhora de Vidro tam. 30cm', category: 'Personalizados', price: 15.00, costPrice: 6.65, stock: 0, status: 'Disponível' },
+  { id: 'p58', name: 'Painel 60x40', category: 'Personalizados', price: 60.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p59', name: 'Planner Mensal', category: 'Impressão', price: 50.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p60', name: 'Planner Semanal', category: 'Impressão', price: 50.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p61', name: 'Porta Bis', category: 'Impressão', price: 2.70, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p62', name: 'Quadro de Parede A4', category: 'Personalizados', price: 8.00, costPrice: 1.78, stock: 0, status: 'Disponível' },
+  { id: 'p63', name: 'Quadro infantil ilustrado 21x28cm em papel 180g', category: 'Impressão', price: 7.25, costPrice: 2.35, stock: 0, status: 'Disponível' },
+  { id: 'p64', name: 'Sacola Personalizada 15x20,5x5', category: 'Personalizados', price: 7.00, costPrice: 2.50, stock: 0, status: 'Disponível' },
+  { id: 'p65', name: 'Saquinho de Suspiro', category: 'Impressão', price: 7.15, costPrice: 2.30, stock: 0, status: 'Disponível' },
+  { id: 'p66', name: 'Serviço de Corte e Vinco A4 - Colaborador', category: 'Outros', price: 1.30, costPrice: 0.80, stock: 0, status: 'Disponível' },
+  { id: 'p67', name: 'Tag 10x7 - Papel 180g - 450 un.', category: 'Impressão', price: 98.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p68', name: 'Tag para Canetas 18x5,5', category: 'Personalizados', price: 0.85, costPrice: 0.32, stock: 0, status: 'Disponível' },
+  { id: 'p69', name: 'Tobolata 7x10 cm', category: 'Personalizados', price: 11.00, costPrice: 4.40, stock: 0, status: 'Disponível' },
+  { id: 'p70', name: 'Topo de bolo Simples', category: 'Personalizados', price: 15.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p71', name: 'Topper de Docinho 35x35cm com palito', category: 'Impressão', price: 0.90, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p72', name: 'Topper para Cupcake - 4x4cm com palito', category: 'Impressão', price: 0.98, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p73', name: 'Tubete 13cm', category: 'Personalizados', price: 2.70, costPrice: 0.00, stock: 0, status: 'Disponível' },
+  { id: 'p74', name: 'Vela Aromatizada', category: 'Personalizados', price: 19.00, costPrice: 8.80, stock: 0, status: 'Disponível' }
+];
+
 const INITIAL_CUSTOMERS: Customer[] = [
-  { id: '1', name: 'Consumidor Final', email: 'atendimento@exemplo.com', phone: '', totalOrders: 0, status: 'Ativo' }
+  { id: 'c1', name: 'Adaliana Souza', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c2', name: 'Adriely Balieiro Ribeiro', email: '', phone: '12 99757-9771', totalOrders: 0, status: 'Ativo' },
+  { id: 'c3', name: 'Alexandra - Emo', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c4', name: 'Amélia', email: '', phone: '12 99186-3889', totalOrders: 1, status: 'Ativo' },
+  { id: 'c5', name: 'ANDERSON LUIZ OURIVES CORREA', email: 'feitoamao.impressos@gmail.com', phone: '12 99239-1458', totalOrders: 0, status: 'Ativo' },
+  { id: 'c6', name: 'Beatriz - UTI', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c7', name: 'Beatriz Helena Ártico', email: '', phone: '12 99257-9779', totalOrders: 0, status: 'Ativo' },
+  { id: 'c8', name: 'Camila', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c9', name: 'Célia - Santa Casa Guaratinguetá', email: '', phone: '', totalOrders: 2, status: 'Ativo' },
+  { id: 'c10', name: 'Ciliane', email: '', phone: '12 99618-5065', totalOrders: 1, status: 'Ativo' },
+  { id: 'c11', name: 'Cintia', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c12', name: 'Cris - Loira UTI', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c13', name: 'Cristiane - Cris', email: '', phone: '12 99767-8032', totalOrders: 1, status: 'Ativo' },
+  { id: 'c14', name: 'Edimilson - Didi', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c15', name: 'Eliana\'s Restaurante', email: '', phone: '12 99205-3252', totalOrders: 0, status: 'Ativo' },
+  { id: 'c16', name: 'Elida - Samira', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c17', name: 'Flávia Ferreira', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c18', name: 'Gabi - Unha', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c19', name: 'Gabriela', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c20', name: 'Geovana - Cris', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c21', name: 'Gera Som', email: 'feitoamao.impressos@gmail.com', phone: '12 99619-3794', totalOrders: 0, status: 'Ativo' },
+  { id: 'c22', name: 'Gisele CC', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c23', name: 'Graça - Santa Casa', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c24', name: 'Gráfica Denis', email: '', phone: '12 99702-4365', totalOrders: 1, status: 'Ativo' },
+  { id: 'c25', name: 'Gráfica Digital Center', email: '', phone: '12 99600-2727', totalOrders: 2, status: 'Ativo' },
+  { id: 'c26', name: 'IRM SENHOR DOS PASSOS E STA CASA DE MISERICORDIA DE GUARATINGUETA', email: 'compras@santacasaguara.com.br', phone: '12 99628-3943', totalOrders: 0, status: 'Ativo' },
+  { id: 'c27', name: 'Jeferson Barbearia', email: '', phone: '12 99100-1530', totalOrders: 1, status: 'Ativo' },
+  { id: 'c28', name: 'Jéssica - Enfermeira', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c29', name: 'Jéssica - Ortopedia', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c30', name: 'Juliana - Santa Casa', email: '', phone: '', totalOrders: 4, status: 'Ativo' },
+  { id: 'c31', name: 'Letícia - Santa Casa Guará', email: '', phone: '', totalOrders: 2, status: 'Ativo' },
+  { id: 'c32', name: 'Loja Ireny', email: '', phone: '12 98142-6238', totalOrders: 0, status: 'Ativo' },
+  { id: 'c33', name: 'Loja Vitória', email: '', phone: '12 98142-6238', totalOrders: 1, status: 'Ativo' },
+  { id: 'c34', name: 'Lorraine - Santa Casa Guara', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c35', name: 'Lúcia Moraes', email: '', phone: '12 99142-7858', totalOrders: 4, status: 'Ativo' },
+  { id: 'c36', name: 'Lugui Ferramentas', email: '', phone: '12 98245-1589', totalOrders: 3, status: 'Ativo' },
+  { id: 'c37', name: 'Mais Motos', email: '', phone: '12 97409-5312', totalOrders: 1, status: 'Ativo' },
+  { id: 'c38', name: 'Mariane Bijoux', email: '', phone: '12 99738-1848', totalOrders: 1, status: 'Ativo' },
+  { id: 'c39', name: 'Marina', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c40', name: 'Michele - Enfermeira', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
+  { id: 'c41', name: 'Michele - Enfermeira Pediatria', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c42', name: 'Mônica', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
+  { id: 'c43', name: 'Natalia - PI', email: '', phone: '', totalOrders: 3, status: 'Ativo' },
+  { id: 'c44', name: 'Natália - C1', email: '', phone: '', totalOrders: 2, status: 'Ativo' },
+  { id: 'c45', name: 'Ortobom - Guaratinguetá', email: '', phone: '(12) 99239-2009', totalOrders: 0, status: 'Ativo' },
+  { id: 'c46', name: 'Paloma - C1', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c47', name: 'Paula Mariana', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
+  { id: 'c48', name: 'Pedro', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
+  { id: 'c49', name: 'Pizzaria La Bella', email: '', phone: '12 99766-0189', totalOrders: 4, status: 'Ativo' },
+  { id: 'c50', name: 'Priscila - Santa Casa Aparecida', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c51', name: 'Psicomed', email: '', phone: '12 3105-3194', totalOrders: 1, status: 'Ativo' },
+  { id: 'c52', name: 'Renata', email: '', phone: '12 99725-8925', totalOrders: 1, status: 'Ativo' },
+  { id: 'c53', name: 'Renata (Outra)', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c54', name: 'Rose - Enfermeira', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c55', name: 'Samira - Santa Casa Aparecida', email: '', phone: '', totalOrders: 2, status: 'Ativo' },
+  { id: 'c56', name: 'Santa Casa de Misericórdia de Guaratinguetá', email: '', phone: '12 2131-1900', totalOrders: 1, status: 'Ativo' },
+  { id: 'c57', name: 'Sheila - Festas', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c58', name: 'Silvia - Camila Shopping', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c59', name: 'Suelen', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
+  { id: 'c60', name: 'Taisa Helena', email: '', phone: '12 99260-8262', totalOrders: 1, status: 'Ativo' },
+  { id: 'c61', name: 'Tassia - Felipe', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c62', name: 'Thais', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c63', name: 'Thais - Cinta', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c64', name: 'Thais - Enfermeira', email: '', phone: '12 99747-2680', totalOrders: 1, status: 'Ativo' },
+  { id: 'c65', name: 'Valquiria - Val', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c66', name: 'Vanessa', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
+  { id: 'c67', name: 'Yane', email: '', phone: '', totalOrders: 1, status: 'Ativo' }
 ];
 
 const getLocalDateString = (date: Date = new Date()): string => {
@@ -93,8 +236,9 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('products');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
+      // Priorizar INITIAL_PRODUCTS no primeiro carregamento ou reset
+      return (saved && JSON.parse(saved).length > 5) ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    } catch { return INITIAL_PRODUCTS; }
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -121,7 +265,8 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>(() => {
     try {
       const saved = localStorage.getItem('customers');
-      return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
+      // Priorizar INITIAL_CUSTOMERS se estiver vazio ou com apenas 1 cliente, para carregar a lista nova no reset
+      return (saved && JSON.parse(saved).length > 1) ? JSON.parse(saved) : INITIAL_CUSTOMERS;
     } catch { return INITIAL_CUSTOMERS; }
   });
 
@@ -228,12 +373,12 @@ export default function App() {
       setOrders([]);
       setExpenses([]);
       setCustomers(INITIAL_CUSTOMERS);
-      setProducts([]);
+      setProducts(INITIAL_PRODUCTS);
       setSupplies([]);
       setAccounts(INITIAL_ACCOUNTS);
       setCompanySettings(INITIAL_COMPANY);
       setCarriers([]);
-      alert('O sistema foi limpo completamente e as configurações foram resetadas.');
+      alert('O sistema foi limpo completamente. As listas oficiais de clientes e produtos foram reiniciadas.');
     }
   };
 
@@ -250,42 +395,32 @@ export default function App() {
     // Lógica para Total de Pedidos no Período distribuindo parcelas:
     const totalPedidosPeriodo = filteredOrdersForPeriod.reduce((acc, o) => {
       if (o.productionStatus === 'Apenas Financeiro') {
-        // Se for uma parcela/recorrência financeira, contamos seu valor total no período correspondente
         return acc + o.value;
       } else {
-        // Se for um pedido de produção (o "principal"):
         if (o.installments && o.installments > 1) {
-          // Se for parcelado, no mês da venda só contamos o que foi pago à vista (Sinal/Entrada)
-          // As parcelas futuras aparecerão como "Apenas Financeiro" nos meses seguintes
           return acc + (o.paid || 0);
         } else {
-          // Se não for parcelado, conta o valor total normalmente
           return acc + o.value;
         }
       }
     }, 0);
 
-    // Lógica para Total a Receber no Período:
     const totalReceberPeriodo = filteredOrdersForPeriod.reduce((acc, o) => {
       if (o.productionStatus === 'Apenas Financeiro') {
         return acc + o.remaining;
       } else {
         if (o.installments && o.installments > 1) {
-          // Para pedidos principais parcelados, o saldo a receber já está diluído nas parcelas "Apenas Financeiro"
-          // Não somamos o remaining aqui para evitar contagem dupla
           return acc;
         }
         return acc + o.remaining;
       }
     }, 0);
 
-    // Lógica para Total a Receber Geral:
     const totalReceberGeral = orders.reduce((acc, o) => {
       if (o.productionStatus === 'Apenas Financeiro') {
         return acc + o.remaining;
       } else {
         if (o.installments && o.installments > 1) {
-          // Evita contagem dupla: o saldo geral virá da soma das parcelas individuais
           return acc;
         }
         return acc + o.remaining;
