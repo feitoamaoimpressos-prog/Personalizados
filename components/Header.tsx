@@ -13,6 +13,7 @@ interface HeaderProps {
   subtitle?: string;
   greeting?: string;
   lastSaved?: Date | null;
+  showHideButton: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -24,7 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
   title = 'Dashboard',
   subtitle = 'Gestão de Gráfica Rápida',
   greeting = 'Olá, Bem-vindo!',
-  lastSaved
+  lastSaved,
+  showHideButton
 }) => {
   const [showSavedStatus, setShowSavedStatus] = useState(false);
 
@@ -65,29 +67,31 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
 
         <div className="flex items-center gap-3">
-          <button 
-            onClick={onToggleHide}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all group"
-            title={hideValues ? 'Mostrar Valores' : 'Ocultar Valores'}
-          >
-            {hideValues ? (
-              <EyeOff className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
-            ) : (
-              <Eye className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
-            )}
-            <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest hidden sm:inline">
-              {hideValues ? 'Oculto' : 'Visível'}
-            </span>
-          </button>
+          {showHideButton && (
+            <button 
+              onClick={onToggleHide}
+              className="flex items-center gap-3 px-6 py-2.5 bg-white border border-slate-200 rounded-full shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all group animate-in fade-in zoom-in duration-300"
+              title={hideValues ? 'Mostrar Valores' : 'Ocultar Valores'}
+            >
+              {hideValues ? (
+                <EyeOff className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
+              ) : (
+                <Eye className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
+              )}
+              <span className="text-xs font-black text-slate-600 uppercase tracking-widest">
+                {hideValues ? 'Oculto' : 'Visível'}
+              </span>
+            </button>
+          )}
 
           <button 
             onClick={onNewOrder}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-600/20 hover:bg-blue-700 hover:scale-[1.02] transition-all active:scale-95 group"
+            className="flex items-center gap-3 px-6 py-3 bg-[#2563eb] text-white rounded-full shadow-xl shadow-blue-600/10 hover:bg-[#1d4ed8] hover:scale-[1.02] transition-all active:scale-95 group"
           >
-            <div className="bg-white/20 p-1 rounded-lg group-hover:bg-white/30 transition-colors">
-              <Plus className="w-4 h-4 text-white" />
+            <div className="bg-white/20 p-1.5 rounded-xl group-hover:bg-white/30 transition-colors flex items-center justify-center">
+              <Plus className="w-4 h-4 text-white" strokeWidth={3} />
             </div>
-            <span className="text-sm font-black uppercase tracking-widest">Novo Pedido</span>
+            <span className="text-[13px] font-black uppercase tracking-widest">Novo Pedido</span>
           </button>
         </div>
       </div>

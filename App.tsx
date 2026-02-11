@@ -620,7 +620,7 @@ export default function App() {
           <OrderDetailView order={viewingOrder} company={companySettings} onBack={() => setViewingOrder(null)} onSettle={() => handleSettleOrder(viewingOrder.id)} onPrint={() => setIsPrinting(true)} />
         ) : (
           <>
-            <Header hideValues={hideValues} onToggleHide={() => setHideValues(!hideValues)} dateRange={dateRange} onDateChange={setDateRange} onNewOrder={() => setIsNewOrderModalOpen(true)} title={companySettings.dashboardTitle} subtitle={companySettings.dashboardSubtitle} greeting={companySettings.dashboardGreeting} lastSaved={lastSaved} />
+            <Header hideValues={hideValues} onToggleHide={() => setHideValues(!hideValues)} dateRange={dateRange} onDateChange={setDateRange} onNewOrder={() => setIsNewOrderModalOpen(true)} title={companySettings.dashboardTitle} subtitle={companySettings.dashboardSubtitle} greeting={companySettings.dashboardGreeting} lastSaved={lastSaved} showHideButton={activeView === 'financeiro'} />
             <div className="mt-8 flex flex-wrap gap-1 p-1 bg-slate-200/50 rounded-xl w-fit">
               {tabs.map((tab) => (
                 <button key={tab.id} onClick={() => setActiveView(tab.id)} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeView === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
