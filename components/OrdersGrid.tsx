@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ShoppingCart, Search, Plus, Calendar, Printer, Eye, Edit3, DollarSign, Trash2 } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Calendar, Printer, Eye, Edit3, DollarSign, Trash2, ChevronDown } from 'lucide-react';
 import { Order } from '../types';
 
 interface OrdersGridProps {
@@ -10,18 +10,28 @@ interface OrdersGridProps {
   onPrintOrder: (order: Order) => void;
   onEditOrder: (order: Order) => void;
   onSettleOrder: (orderId: string) => void;
+  onUpdateStatus: (orderId: string, newStatus: Order['productionStatus']) => void;
   onDeleteOrder: (orderId: string) => void;
 }
 
-export const OrdersGrid: React.FC<OrdersGridProps> = ({ orders, onNewOrder, onViewOrder, onPrintOrder, onEditOrder, onSettleOrder, onDeleteOrder }) => {
+const PRODUCTION_STAGES = [
+  'Pedido em aberto',
+  'Criando arte',
+  'Pedido em produção',
+  'Pedido em transporte',
+  'Pedido entregue'
+];
+
+export const OrdersGrid: React.FC<OrdersGridProps> = ({ orders, onNewOrder, onViewOrder, onPrintOrder, onEditOrder, onSettleOrder, onUpdateStatus, onDeleteOrder }) => {
   const getStatusStyle = (status: string | undefined) => {
     switch (status) {
-      case 'Pedido em aberto': return 'bg-blue-100 text-blue-700';
-      case 'Criando arte': return 'bg-purple-100 text-purple-700';
-      case 'Pedido em produção': return 'bg-orange-100 text-orange-700';
-      case 'Pedido em transporte': return 'bg-green-100 text-green-700';
-      case 'Pedido entregue': return 'bg-slate-100 text-slate-700';
-      default: return 'bg-slate-100 text-slate-600';
+      case 'Pedido em aberto': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Criando arte': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'Pedido em produção': return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'Pedido em transporte': return 'bg-green-100 text-green-700 border-green-200';
+      case 'Pedido entregue': return 'bg-slate-100 text-slate-700 border-slate-200';
+      case 'Apenas Financeiro': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+      default: return 'bg-slate-50 text-slate-600 border-slate-100';
     }
   };
 
@@ -103,9 +113,25 @@ export const OrdersGrid: React.FC<OrdersGridProps> = ({ orders, onNewOrder, onVi
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight ${getStatusStyle(order.productionStatus)}`}>
-                      {order.productionStatus || 'Pedido em aberto'}
-                    </span>
+                    <div className="relative group/status">
+                      <select 
+                        value={order.productionStatus || 'Pedido em aberto'}
+                        onChange={(e) => onUpdateStatus(order.id, e.target.value as any)}
+                        className={`appearance-none px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tight border cursor-pointer outline-none transition-all pr-8 ${getStatusStyle(order.productionStatus)}`}
+                        disabled={order.productionStatus === 'Apenas Financeiro'}
+                      >
+                        {order.productionStatus === 'Apenas Financeiro' ? (
+                          <option value="Apenas Financeiro">Apenas Financeiro</option>
+                        ) : (
+                          PRODUCTION_STAGES.map(stage => (
+                            <option key={stage} value={stage}>{stage}</option>
+                          ))
+                        )}
+                      </select>
+                      {order.productionStatus !== 'Apenas Financeiro' && (
+                        <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50" />
+                      )}
+                    </div>
                   </td>
                   <td className="py-4 px-6 text-center">
                     <div className="flex items-center justify-center gap-1 md:gap-2">

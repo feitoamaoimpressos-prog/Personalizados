@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Plus, Trash2, Loader2, Save, Package, DollarSign, ChevronDown, Search, Truck } from 'lucide-react';
+import { X, Plus, Trash2, Loader2, Save, Package, DollarSign, ChevronDown, Search, Truck, Layers } from 'lucide-react';
 import { OrderItem, Order, Customer, Product, BankAccount, Carrier } from '../types';
 
 interface NewOrderModalProps {
@@ -13,6 +13,14 @@ interface NewOrderModalProps {
   accounts: BankAccount[];
   carriers: Carrier[];
 }
+
+const PRODUCTION_STAGES = [
+  'Pedido em aberto',
+  'Criando arte',
+  'Pedido em produção',
+  'Pedido em transporte',
+  'Pedido entregue'
+];
 
 export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, onSave, orderToEdit, customers, products, accounts, carriers }) => {
   const [customerName, setCustomerName] = useState('');
@@ -338,12 +346,35 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
             )}
           </div>
 
-          {/* Logística e Prazos */}
+          {/* Status Inicial da Produção */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                <Layers className="w-3 h-3" />
+                Status Inicial da Produção
+              </label>
+              <div className="relative">
+                <select 
+                  value={productionStatus} 
+                  onChange={(e) => setProductionStatus(e.target.value)} 
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 outline-none appearance-none"
+                >
+                  {PRODUCTION_STAGES.map(stage => (
+                    <option key={stage} value={stage}>{stage}</option>
+                  ))}
+                  <option value="Apenas Financeiro">Apenas Financeiro (Sem Produção)</option>
+                </select>
+                <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase">Entrega Prevista</label>
               <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 outline-none" />
             </div>
+          </div>
+
+          {/* Logística */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase">Transportadora / Envio</label>
               <div className="relative">

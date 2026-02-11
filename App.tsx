@@ -236,7 +236,6 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('products');
-      // Priorizar INITIAL_PRODUCTS no primeiro carregamento ou reset
       return (saved && JSON.parse(saved).length > 5) ? JSON.parse(saved) : INITIAL_PRODUCTS;
     } catch { return INITIAL_PRODUCTS; }
   });
@@ -265,7 +264,6 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>(() => {
     try {
       const saved = localStorage.getItem('customers');
-      // Priorizar INITIAL_CUSTOMERS se estiver vazio ou com apenas 1 cliente, para carregar a lista nova no reset
       return (saved && JSON.parse(saved).length > 1) ? JSON.parse(saved) : INITIAL_CUSTOMERS;
     } catch { return INITIAL_CUSTOMERS; }
   });
@@ -392,7 +390,6 @@ export default function App() {
     const receberHoje = orders.filter(o => o.date === todayStr && o.remaining > 0).reduce((acc, o) => acc + o.remaining, 0);
     const pagarHoje = expenses.filter(e => e.dueDate === todayStr && e.status === 'Pendente').reduce((acc, e) => acc + e.value, 0);
     
-    // Lógica para Total de Pedidos no Período distribuindo parcelas:
     const totalPedidosPeriodo = filteredOrdersForPeriod.reduce((acc, o) => {
       if (o.productionStatus === 'Apenas Financeiro') {
         return acc + o.value;
@@ -501,6 +498,10 @@ export default function App() {
     }
     setIsNewOrderModalOpen(false);
     setOrderToEdit(null);
+  };
+
+  const handleUpdateOrderStatus = (orderId: string, newStatus: Order['productionStatus']) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, productionStatus: newStatus } : o));
   };
 
   const handleDeleteOrder = (orderId: string) => {
@@ -618,7 +619,7 @@ export default function App() {
             </div>
             <div className="mt-8">
               {activeView === 'producao' && <ProductionGrid orders={filteredOrdersForPeriod} onViewOrder={setViewingOrder} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} onAdvanceStage={handleAdvanceStage} onDeleteOrder={handleDeleteOrder} />}
-              {activeView === 'pedidos' && <OrdersGrid orders={filteredOrdersForPeriod} onNewOrder={() => setIsNewOrderModalOpen(true)} onViewOrder={setViewingOrder} onPrintOrder={(o) => {setViewingOrder(o); setIsPrinting(true);}} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} onDeleteOrder={handleDeleteOrder} />}
+              {activeView === 'pedidos' && <OrdersGrid orders={filteredOrdersForPeriod} onNewOrder={() => setIsNewOrderModalOpen(true)} onViewOrder={setViewingOrder} onPrintOrder={(o) => {setViewingOrder(o); setIsPrinting(true);}} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} onSettleOrder={handleSettleOrder} onUpdateStatus={handleUpdateOrderStatus} onDeleteOrder={handleDeleteOrder} />}
               {activeView === 'financeiro' && (
                 <div className="space-y-8">
                   <QuickStats stats={calculatedStats} hideValues={hideValues} />
