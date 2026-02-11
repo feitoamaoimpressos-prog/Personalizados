@@ -9,7 +9,6 @@ import { BankAccounts } from './components/BankAccounts';
 import { ProductionGrid } from './components/ProductionGrid';
 import { CustomersGrid } from './components/CustomersGrid';
 import { ProductsGrid } from './components/ProductsGrid';
-import { CategoriesGrid } from './components/CategoriesGrid';
 import { OrdersGrid } from './components/OrdersGrid';
 import { HistoryGrid } from './components/HistoryGrid';
 import { SettingsGrid } from './components/SettingsGrid';
@@ -24,7 +23,7 @@ import { NewSupplyModal } from './components/NewSupplyModal';
 import { PdfPrintView } from './components/PdfPrintView';
 import { OrderDetailView } from './components/OrderDetailView';
 import { FinancialStats, BankAccount, ViewType, Product, Order, Expense, Customer, CompanySettings, Carrier, Supply } from './types';
-import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History, LayoutGrid, Layers } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History, Layers } from 'lucide-react';
 
 const INITIAL_ACCOUNTS: BankAccount[] = [
   { id: '1', name: 'Caixa Geral', type: 'Caixa', balance: 0.00 },
@@ -607,7 +606,6 @@ export default function App() {
     { id: 'historico', label: 'Histórico', icon: History },
     { id: 'clientes', label: 'Clientes', icon: Users },
     { id: 'produtos', label: 'Produtos', icon: Box },
-    { id: 'categorias', label: 'Categorias', icon: LayoutGrid },
     { id: 'configuracoes', label: 'Sistema', icon: Settings },
   ];
 
@@ -647,7 +645,6 @@ export default function App() {
               {activeView === 'historico' && <HistoryGrid orders={filteredOrdersForPeriod} onViewOrder={setViewingOrder} />}
               {activeView === 'clientes' && <CustomersGrid customers={customers} onNewCustomer={() => setIsNewCustomerModalOpen(true)} onEditCustomer={(c) => { setCustomerToEdit(c); setIsNewCustomerModalOpen(true); }} onDeleteCustomer={(id) => setCustomers(prev => prev.filter(c => c.id !== id))} />}
               {activeView === 'produtos' && <ProductsGrid products={products} onNewProduct={() => setIsNewProductModalOpen(true)} onEditProduct={(p) => { setProductToEdit(p); setIsNewProductModalOpen(true); }} onDeleteProduct={(id) => setProducts(prev => prev.filter(p => p.id !== id))} />}
-              {activeView === 'categorias' && <CategoriesGrid products={products} settings={companySettings} onSaveSettings={setCompanySettings} />}
               {activeView === 'configuracoes' && <SettingsGrid settings={companySettings} carriers={carriers} onSaveSettings={setCompanySettings} onSaveCarriers={setCarriers} onExport={handleExportData} onImport={handleImportData} onClearData={handleClearData} />}
             </div>
           </>

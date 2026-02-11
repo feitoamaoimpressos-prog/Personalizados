@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Plus, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { DateRangePicker } from './DateRangePicker';
 
 interface HeaderProps {
@@ -21,7 +21,6 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleHide, 
   dateRange, 
   onDateChange, 
-  onNewOrder,
   title = 'Dashboard',
   subtitle = 'Gestão de Gráfica Rápida',
   greeting = 'Olá, Bem-vindo!',
@@ -83,16 +82,6 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </button>
           )}
-
-          <button 
-            onClick={onNewOrder}
-            className="flex items-center gap-3 px-6 py-3 bg-[#2563eb] text-white rounded-full shadow-xl shadow-blue-600/10 hover:bg-[#1d4ed8] hover:scale-[1.02] transition-all active:scale-95 group"
-          >
-            <div className="bg-white/20 p-1.5 rounded-xl group-hover:bg-white/30 transition-colors flex items-center justify-center">
-              <Plus className="w-4 h-4 text-white" strokeWidth={3} />
-            </div>
-            <span className="text-[13px] font-black uppercase tracking-widest">Novo Pedido</span>
-          </button>
         </div>
       </div>
     </div>
