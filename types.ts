@@ -45,6 +45,7 @@ export interface OrderItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  observations?: string;
 }
 
 export interface Order {

@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Truck,
   Tag,
-  Store
+  Store,
+  MessageSquare
 } from 'lucide-react';
 import { Order, CompanySettings } from '../types';
 
@@ -129,39 +130,6 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
           </div>
         </div>
 
-        {/* Frete, Desconto e Transportadora Detail */}
-        {(order.shipping || order.discount || order.carrier) && (
-          <div className="px-8 pb-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-             {order.carrier ? (
-               <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
-                 <Store className="w-5 h-5 text-blue-400" />
-                 <div>
-                    <span className="text-[9px] font-black text-blue-400 uppercase block">Transportadora</span>
-                    <p className="text-sm font-black text-blue-700 truncate max-w-[120px]">{order.carrier}</p>
-                 </div>
-               </div>
-             ) : null}
-             {order.shipping ? (
-               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center gap-3">
-                 <Truck className="w-5 h-5 text-slate-400" />
-                 <div>
-                    <span className="text-[9px] font-black text-slate-400 uppercase block">Frete</span>
-                    <p className="text-sm font-black text-slate-700">R$ {order.shipping.toFixed(2)}</p>
-                 </div>
-               </div>
-             ) : null}
-             {order.discount ? (
-               <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-center gap-3">
-                 <Tag className="w-5 h-5 text-rose-400" />
-                 <div>
-                    <span className="text-[9px] font-black text-rose-400 uppercase block">Desconto</span>
-                    <p className="text-sm font-black text-rose-600">- R$ {order.discount.toFixed(2)}</p>
-                 </div>
-               </div>
-             ) : null}
-          </div>
-        )}
-
         {/* Information Grid */}
         <div className="px-8 pb-8 grid grid-cols-2 gap-y-6 gap-x-12 border-b border-slate-50">
           <div className="flex items-start gap-3">
@@ -197,14 +165,26 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({ order, onBack,
           <div className="space-y-3">
             {order.items && order.items.length > 0 ? (
               order.items.map((item, idx) => (
-                <div key={idx} className="bg-slate-50/50 rounded-2xl p-6 flex items-center justify-between group hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                  <div className="space-y-1">
-                    <p className="font-black text-slate-800 tracking-tight">{item.description}</p>
-                    <p className="text-[11px] font-bold text-slate-400">
-                      Quantidade: {item.quantity} | Preço unitário: R$ {item.unitPrice.toFixed(2)}
-                    </p>
+                <div key={idx} className="bg-slate-50/50 rounded-2xl p-6 flex flex-col gap-3 group hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="font-black text-slate-800 tracking-tight uppercase">{item.description}</p>
+                      <p className="text-[11px] font-bold text-slate-400 uppercase">
+                        Quantidade: {item.quantity} | Preço unitário: R$ {item.unitPrice.toFixed(2)}
+                      </p>
+                    </div>
+                    <p className="text-lg font-black text-blue-600">R$ {(item.quantity * item.unitPrice).toFixed(2)}</p>
                   </div>
-                  <p className="text-sm font-black text-blue-600">R$ {(item.quantity * item.unitPrice).toFixed(2)}</p>
+                  
+                  {item.observations && (
+                    <div className="bg-white/60 p-3 rounded-xl border border-slate-100 flex items-start gap-2">
+                      <MessageSquare className="w-3.5 h-3.5 text-blue-400 mt-0.5" />
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Observações:</span>
+                        <p className="text-xs font-medium text-slate-600 italic leading-relaxed">{item.observations}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             ) : null}

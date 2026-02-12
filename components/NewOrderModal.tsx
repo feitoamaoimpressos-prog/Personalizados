@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Plus, Trash2, Loader2, Save, Package, DollarSign, ChevronDown, Search, Truck, Layers, Wallet } from 'lucide-react';
+import { X, Plus, Trash2, Loader2, Save, Package, DollarSign, ChevronDown, Search, Truck, Layers, Wallet, MessageSquare } from 'lucide-react';
 import { OrderItem, Order, Customer, Product, BankAccount, Carrier } from '../types';
 
 interface NewOrderModalProps {
@@ -50,7 +50,8 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
   const [currentItem, setCurrentItem] = useState({
     description: '',
     quantity: 1,
-    unitPrice: 0
+    unitPrice: 0,
+    observations: ''
   });
 
   const [productSearch, setProductSearch] = useState('');
@@ -135,7 +136,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
   const addItem = () => {
     if (!currentItem.description) return setError('Descreva o item.');
     setItems([...items, { ...currentItem }]);
-    setCurrentItem({ description: '', quantity: 1, unitPrice: 0 });
+    setCurrentItem({ description: '', quantity: 1, unitPrice: 0, observations: '' });
     setProductSearch('');
   };
 
@@ -145,6 +146,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
 
   const handleSelectProduct = (product: Product) => {
     setCurrentItem({
+      ...currentItem,
       description: product.name,
       quantity: 1,
       unitPrice: product.price
@@ -299,7 +301,6 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                 )}
               </div>
               
-              {/* Ajuste do tamanho do campo de Quantidade */}
               <div className="col-span-4 md:col-span-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Qtd</label>
                 <input 
@@ -335,12 +336,29 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
               </div>
             </div>
 
+            {/* Novo Campo de Observações do Item */}
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-12 md:col-span-11">
+                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block flex items-center gap-1">
+                  <MessageSquare className="w-3 h-3" />
+                  Observações do Item (Opcional)
+                </label>
+                <input 
+                  type="text" 
+                  value={currentItem.observations}
+                  onChange={(e) => setCurrentItem({...currentItem, observations: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 font-medium focus:ring-2 focus:ring-blue-500/20 outline-none placeholder:text-slate-300"
+                  placeholder="Ex: Laminado fosco, bordas arredondadas, cor predominante azul..."
+                />
+              </div>
+            </div>
+
             {items.length > 0 && (
               <div className="mt-4 border border-slate-200 rounded-xl bg-white overflow-hidden">
                 <table className="w-full text-xs">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr className="text-slate-900 uppercase font-black">
-                      <th className="py-3 px-4 text-left">Item</th>
+                      <th className="py-3 px-4 text-left">Item / Obs</th>
                       <th className="py-3 px-4 text-center">Qtd</th>
                       <th className="py-3 px-4 text-right">Subtotal</th>
                       <th className="py-3 px-4 text-center"></th>
@@ -349,7 +367,14 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                   <tbody>
                     {items.map((it, i) => (
                       <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900">{it.description}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-900">{it.description}</span>
+                            {it.observations && (
+                              <span className="text-[10px] text-slate-400 italic mt-0.5">{it.observations}</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3 px-4 text-center font-bold text-slate-900">{it.quantity}</td>
                         <td className="py-3 px-4 text-right font-black text-slate-900">R$ {(it.quantity * it.unitPrice).toFixed(2)}</td>
                         <td className="py-3 px-4 text-center">

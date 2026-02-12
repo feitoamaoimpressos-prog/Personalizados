@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Printer, Download, ArrowLeft, Loader2, Wrench } from 'lucide-react';
 import { Order, CompanySettings } from '../types';
@@ -162,9 +163,11 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
 
           .items-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 6mm; border: 1.2pt solid #cbd5e1; border-radius: 4mm; overflow: hidden; }
           .items-table th { background: #475569; color: #fff !important; font-size: 8pt; font-weight: 900; text-transform: uppercase; padding: 2.5mm; text-align: left; }
-          .items-table td { padding: 2.5mm; font-size: 9pt; border-bottom: 1pt solid #f1f5f9; color: #475569 !important; font-weight: 600; }
+          .items-table td { padding: 2.5mm; font-size: 9pt; border-bottom: 1pt solid #f1f5f9; color: #475569 !important; font-weight: 600; vertical-align: top; }
           .items-table tr:last-child td { border-bottom: none; }
           
+          .item-obs { font-size: 7.5pt; font-style: italic; color: #64748b !important; margin-top: 1mm; font-weight: 500; display: block; }
+
           .production-field {
             border: 1.5pt dashed #cbd5e1;
             border-radius: 4mm;
@@ -287,7 +290,12 @@ export const PdfPrintView: React.FC<PdfPrintViewProps> = ({ order, company, onBa
             {(order.items && order.items.length > 0 ? order.items : [{ description: 'Serviço Gráfico', quantity: 1, unitPrice: order.value }]).map((item, idx) => (
               <tr key={idx}>
                 <td className="text-center text-slate-400">{(idx + 1).toString().padStart(2, '0')}</td>
-                <td style={{fontWeight: '800'}}>{item.description}</td>
+                <td>
+                  <span style={{fontWeight: '800', display: 'block', textTransform: 'uppercase'}}>{item.description}</span>
+                  {item.observations && (
+                    <span className="item-obs">OBS: {item.observations}</span>
+                  )}
+                </td>
                 <td className="text-center">{item.quantity}</td>
                 {!isOS && <td className="text-right">R$ {item.unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
                 {!isOS && <td className="text-right" style={{fontWeight: 900, color: '#1e293b !important'}}>R$ {(item.quantity * item.unitPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>}
