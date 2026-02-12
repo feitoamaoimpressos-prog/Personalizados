@@ -8,7 +8,8 @@ import {
   Printer, 
   Calendar, 
   Tag, 
-  Wallet
+  Wallet,
+  Clock
 } from 'lucide-react';
 import { Order, Expense, BankAccount } from '../types';
 
@@ -29,34 +30,68 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
   const transactions = useMemo(() => {
     const list: any[] = [];
 
+    // Processa Receitas (Pedidos e Parcelas)
     orders.forEach(o => {
-      if (o.paid > 0) {
+      // Regra para evitar duplicidade em pedidos parcelados no relatório financeiro:
+      // Se for um pedido de produção (comum) e tiver parcelas, o financeiro real está nas parcelas 'Apenas Financeiro'.
+      // Mostramos o pedido principal apenas se NÃO for parcelado OU se ele tiver algum valor pago de entrada.
+      const isInstallmentMain = o.productionStatus !== 'Apenas Financeiro' && (o.installments || 0) > 1;
+      
+      if (o.productionStatus === 'Apenas Financeiro') {
+        // É uma parcela individual
         list.push({
           id: o.id,
           date: o.date,
-          description: o.productionStatus === 'Apenas Financeiro' && o.items?.[0] ? o.items[0].description : `Pedido: ${o.customer}`,
-          category: o.productionStatus === 'Apenas Financeiro' ? 'Serviço/Parcela' : 'Venda',
+          description: o.items?.[0]?.description || `Parcela de Pedido: ${o.customer}`,
+          category: 'Receita / Parcela',
+          type: 'Receita',
+          account: o.accountName || 'Caixa Geral',
+          value: o.value, // Valor total da parcela
+          status: o.status || (o.remaining === 0 ? 'Pago' : 'Pendente'),
+          paidValue: o.paid
+        });
+      } else if (!isInstallmentMain) {
+        // É um pedido normal à vista ou sem parcelas financeiras separadas
+        list.push({
+          id: o.id,
+          date: o.date,
+          description: `Pedido: ${o.customer}`,
+          category: 'Venda Direta',
+          type: 'Receita',
+          account: o.accountName || 'Caixa Geral',
+          value: o.value,
+          status: o.status || (o.remaining === 0 ? 'Pago' : 'Pendente'),
+          paidValue: o.paid
+        });
+      } else if (isInstallmentMain && o.paid > 0) {
+        // É o pedido principal mas teve entrada, registramos a entrada como movimento
+        list.push({
+          id: `${o.id}-ENTRADA`,
+          date: o.date,
+          description: `Entrada/Sinal: ${o.customer}`,
+          category: 'Venda (Entrada)',
           type: 'Receita',
           account: o.accountName || 'Caixa Geral',
           value: o.paid,
-          status: 'Pago'
+          status: 'Pago',
+          paidValue: o.paid
         });
       }
     });
 
+    // Processa Despesas
     expenses.forEach(e => {
-      if (e.status === 'Pago') {
-        list.push({
-          id: e.id,
-          date: e.dueDate,
-          description: e.description,
-          category: e.category,
-          type: 'Despesa',
-          account: e.accountName || 'Caixa Geral',
-          value: e.value,
-          status: 'Pago'
-        });
-      }
+      list.push({
+        id: e.id,
+        date: e.dueDate,
+        description: e.description,
+        category: e.category,
+        type: 'Despesa',
+        account: e.accountName || 'Caixa Geral',
+        value: e.value,
+        status: e.status,
+        paidValue: e.status === 'Pago' ? e.value : 0
+      });
     });
 
     return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -71,6 +106,7 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
   });
 
   const totals = useMemo(() => {
+    // Para o resumo superior, consideramos o valor TOTAL (previsto) dos registros filtrados
     const revenue = filteredTransactions.filter(t => t.type === 'Receita').reduce((acc, t) => acc + t.value, 0);
     const expense = filteredTransactions.filter(t => t.type === 'Despesa').reduce((acc, t) => acc + t.value, 0);
     return { revenue, expense, balance: revenue - expense };
@@ -92,14 +128,14 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
 
   return (
     <div className="space-y-6">
-      {/* Botões de Ação (Topo) - Ocultos na Impressão */}
+      {/* Botões de Ação (Topo) */}
       <div className="flex flex-wrap items-center justify-between gap-4 print:hidden px-2">
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input 
               type="text" 
-              placeholder="Pesquisar registros..." 
+              placeholder="Pesquisar em todos os registros..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-4 focus:ring-blue-500/5 outline-none w-48 lg:w-64"
@@ -122,7 +158,7 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
         <div className="flex items-center gap-2">
           <button onClick={handlePrintReport} className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-slate-900/10">
             <Printer className="w-4 h-4" />
-            Imprimir
+            Imprimir Relatório
           </button>
         </div>
       </div>
@@ -180,42 +216,52 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
             <tbody className="divide-y divide-slate-50">
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center text-slate-300 font-black uppercase tracking-[0.2em] italic">Nenhum registro no período</td>
+                  <td colSpan={5} className="py-20 text-center text-slate-300 font-black uppercase tracking-[0.2em] italic">Nenhum registro encontrado no período filtrado</td>
                 </tr>
               ) : (
                 filteredTransactions.map((t, idx) => (
-                  <tr key={`${t.id}-${idx}`} className="group hover:bg-slate-50/50 transition-colors">
+                  <tr key={`${t.id}-${idx}`} className={`group hover:bg-slate-50/50 transition-colors ${t.status === 'Pendente' ? 'bg-slate-50/30' : ''}`}>
                     <td className="py-6 px-10">
                       <div className="flex items-center gap-3">
-                        <Calendar className="w-4 h-4 text-slate-300" />
-                        <span className="text-[13px] font-black text-slate-600">{formatDate(t.date)}</span>
+                        {t.status === 'Pendente' ? (
+                          <Clock className="w-4 h-4 text-orange-400" />
+                        ) : (
+                          <Calendar className="w-4 h-4 text-slate-300" />
+                        )}
+                        <span className={`text-[13px] font-black ${t.status === 'Pendente' ? 'text-orange-500' : 'text-slate-600'}`}>{formatDate(t.date)}</span>
                       </div>
                     </td>
                     <td className="py-6 px-10">
                       <div className="flex flex-col">
-                        <span className="text-[14px] font-black text-slate-800 tracking-tight">{t.description.toUpperCase()}</span>
+                        <span className={`text-[14px] font-black tracking-tight ${t.status === 'Pendente' ? 'text-slate-500' : 'text-slate-800'}`}>
+                          {t.description.toUpperCase()}
+                        </span>
                         <div className="flex items-center gap-1.5 mt-1">
                           <Tag className="w-3 h-3 text-slate-300" />
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t.category}</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            {t.category} {t.status === 'Pendente' ? '(AGUARDANDO)' : ''}
+                          </span>
                         </div>
                       </div>
                     </td>
                     <td className="py-6 px-10">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-[#3b82f6]"></div>
+                        <div className={`w-2 h-2 rounded-full ${t.status === 'Pendente' ? 'bg-slate-300' : 'bg-[#3b82f6]'}`}></div>
                         <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{t.account}</span>
                       </div>
                     </td>
                     <td className="py-6 px-10 text-right">
-                      <span className={`text-[15px] font-black ${t.type === 'Receita' ? 'text-[#059669]' : 'text-[#be123c]'}`}>
+                      <span className={`text-[15px] font-black ${t.type === 'Receita' ? 'text-[#059669]' : 'text-[#be123c]'} ${t.status === 'Pendente' ? 'opacity-60' : ''}`}>
                         {t.type === 'Receita' ? '+' : '-'} {formatCurrency(t.value)}
                       </span>
                     </td>
                     <td className="py-6 px-10 text-center">
                       <span className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                        t.type === 'Receita' ? 'bg-[#d1fae5] text-[#059669]' : 'bg-[#ffe4e6] text-[#be123c]'
+                        t.type === 'Receita' 
+                          ? (t.status === 'Pendente' ? 'bg-emerald-50 text-emerald-400 border border-emerald-100' : 'bg-[#d1fae5] text-[#059669]') 
+                          : (t.status === 'Pendente' ? 'bg-rose-50 text-rose-400 border border-rose-100' : 'bg-[#ffe4e6] text-[#be123c]')
                       }`}>
-                        {t.type}
+                        {t.type} {t.status === 'Pendente' ? '?' : ''}
                       </span>
                     </td>
                   </tr>
@@ -229,11 +275,11 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
         <div className="p-8 pt-12 border-t border-slate-50 flex items-end justify-between">
           <div className="flex gap-10">
             <div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Registros</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Registros Listados</p>
               <p className="text-lg font-black text-slate-700">{filteredTransactions.length}</p>
             </div>
             <div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Período</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Período Selecionado</p>
               <p className="text-lg font-black text-slate-700">{formatDate(dateRange.start)} até {formatDate(dateRange.end)}</p>
             </div>
           </div>
@@ -250,6 +296,7 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
           .rounded-[2rem] { border-radius: 0 !important; }
           .shadow-sm { box-shadow: none !important; }
           table { border-bottom: 1px solid #f1f5f9; }
+          .bg-slate-50/30 { background-color: transparent !important; }
         }
       `}</style>
     </div>
