@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Plus, Trash2, Loader2, Save, Package, DollarSign, ChevronDown, Search, Truck, Layers } from 'lucide-react';
+import { X, Plus, Trash2, Loader2, Save, Package, DollarSign, ChevronDown, Search, Truck, Layers, Wallet } from 'lucide-react';
 import { OrderItem, Order, Customer, Product, BankAccount, Carrier } from '../types';
 
 interface NewOrderModalProps {
@@ -128,6 +128,10 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
 
   const remainingValue = useMemo(() => Math.max(0, totalValue - entryValue), [totalValue, entryValue]);
 
+  const currentItemSubtotal = useMemo(() => {
+    return currentItem.quantity * currentItem.unitPrice;
+  }, [currentItem]);
+
   const addItem = () => {
     if (!currentItem.description) return setError('Descreva o item.');
     setItems([...items, { ...currentItem }]);
@@ -172,6 +176,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
   const handleCreateOrder = () => {
     if (!customerName) return setError('Nome do cliente é obrigatório.');
     if (items.length === 0) return setError('Adicione pelo menos um item.');
+    if (!accountId) return setError('Selecione uma conta bancária para o registro financeiro.');
     
     setIsSaving(true);
     const selectedAccount = accounts.find(a => a.id === accountId);
@@ -260,7 +265,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
           <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
             <h3 className="text-xs font-bold uppercase text-slate-500">Produtos / Serviços</h3>
             <div className="grid grid-cols-12 gap-3 items-end">
-              <div className="col-span-12 md:col-span-6 relative">
+              <div className="col-span-12 md:col-span-5 relative">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Item (Busca ou Manual)</label>
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -274,7 +279,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                     }} 
                     onFocus={() => setShowProductList(true)}
                     className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 outline-none placeholder:text-slate-400" 
-                    placeholder="Procure um produto ou digite..."
+                    placeholder="Procure um produto..."
                   />
                 </div>
                 {showProductList && filteredProducts.length > 0 && (
@@ -287,13 +292,13 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                         className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm font-medium border-b border-slate-50 last:border-0"
                       >
                         <span className="block font-bold text-slate-900">{p.name}</span>
-                        <span className="text-[10px] text-slate-500 uppercase">Preço Base: R$ {p.price.toFixed(2)}</span>
+                        <span className="text-[10px] text-slate-500 uppercase">R$ {p.price.toFixed(2)}</span>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
-              <div className="col-span-4 md:col-span-2">
+              <div className="col-span-3 md:col-span-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Qtd</label>
                 <input 
                   type="number" 
@@ -302,7 +307,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 outline-none" 
                 />
               </div>
-              <div className="col-span-5 md:col-span-3">
+              <div className="col-span-4 md:col-span-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Preço Unit.</label>
                 <input 
                   type="number" 
@@ -310,6 +315,12 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                   onChange={(e) => setCurrentItem({...currentItem, unitPrice: Number(e.target.value)})} 
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 outline-none" 
                 />
+              </div>
+              <div className="col-span-5 md:col-span-3">
+                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Valor Total</label>
+                <div className="px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 font-black">
+                  R$ {currentItemSubtotal.toFixed(2)}
+                </div>
               </div>
               <div className="col-span-3 md:col-span-1">
                 <button onClick={addItem} className="w-full h-11 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-black transition-colors">
@@ -373,8 +384,8 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
             </div>
           </div>
 
-          {/* Logística */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Logística e Conta Bancária */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase">Transportadora / Envio</label>
               <div className="relative">
@@ -390,9 +401,26 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                 <Truck className="w-4 h-4 absolute right-10 top-1/2 -translate-y-1/2 text-slate-400" />
                 <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
-              {carrier === 'Manual' && (
-                <input type="text" placeholder="Qual transportadora?" className="mt-2 w-full px-4 py-2 border border-slate-200 rounded-xl text-sm" onChange={(e) => setCarrier(e.target.value)} />
-              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                <Wallet className="w-3.5 h-3.5 text-blue-500" />
+                Conta Bancária (Recebimento) *
+              </label>
+              <div className="relative">
+                <select 
+                  value={accountId} 
+                  onChange={(e) => setAccountId(e.target.value)} 
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 outline-none appearance-none"
+                >
+                  <option value="">Escolha a conta...</option>
+                  {accounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.name} (Saldo: R$ {acc.balance.toFixed(2)})</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
             </div>
           </div>
 
