@@ -145,11 +145,19 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
   };
 
   const handleSelectProduct = (product: Product) => {
+    // Constrói as especificações automáticas do produto
+    const specs = [
+      product.size ? `Tam: ${product.size}` : '',
+      product.material ? `Mat: ${product.material}` : '',
+      product.finishing ? `Acab: ${product.finishing}` : ''
+    ].filter(Boolean).join(' | ');
+
     setCurrentItem({
       ...currentItem,
       description: product.name,
       quantity: 1,
-      unitPrice: product.price
+      unitPrice: product.price,
+      observations: specs // Aplica o preenchimento automático
     });
     setProductSearch(product.name);
     setShowProductList(false);
@@ -267,7 +275,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
           <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
             <h3 className="text-xs font-bold uppercase text-slate-500">Produtos / Serviços</h3>
             <div className="grid grid-cols-12 gap-3 items-end">
-              <div className="col-span-12 md:col-span-4 relative">
+              <div className="col-span-12 md:col-span-5 relative">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Item (Busca ou Manual)</label>
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -301,7 +309,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                 )}
               </div>
               
-              <div className="col-span-4 md:col-span-2">
+              <div className="col-span-3 md:col-span-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Qtd</label>
                 <input 
                   type="number" 
@@ -321,7 +329,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                 />
               </div>
 
-              <div className="col-span-4 md:col-span-3">
+              <div className="col-span-5 md:col-span-3">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Subtotal</label>
                 <div className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-blue-600 font-black flex items-center justify-between">
                   <span className="text-[10px] text-slate-300 font-bold uppercase">R$</span>
@@ -336,12 +344,12 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
               </div>
             </div>
 
-            {/* Novo Campo de Observações do Item */}
+            {/* Campo de Observações do Item */}
             <div className="grid grid-cols-12 gap-3">
-              <div className="col-span-12 md:col-span-11">
+              <div className="col-span-12 md:col-span-12">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block flex items-center gap-1">
                   <MessageSquare className="w-3 h-3" />
-                  Observações do Item (Opcional)
+                  Observações do Item (Preenchimento Automático ao selecionar)
                 </label>
                 <input 
                   type="text" 
