@@ -6,6 +6,7 @@ import { ActionBanner } from './components/ActionBanner';
 import { PayableBanner } from './components/PayableBanner';
 import { FinancialSummary } from './components/FinancialSummary';
 import { BankAccounts } from './components/BankAccounts';
+import { FinancialRegistry } from './components/FinancialRegistry';
 import { ProductionGrid } from './components/ProductionGrid';
 import { CustomersGrid } from './components/CustomersGrid';
 import { ProductsGrid } from './components/ProductsGrid';
@@ -232,72 +233,54 @@ export default function App() {
     return saved ? JSON.parse(saved) : { start: firstDay, end: lastDay };
   });
   
-  // Refatoração dos initializers para evitar sobrescrita se a lista estiver vazia por escolha do usuário
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('products');
-    if (saved === null) return INITIAL_PRODUCTS; // Primeira vez usando o app
-    try {
-      return JSON.parse(saved);
-    } catch { return INITIAL_PRODUCTS; }
+    if (saved === null) return INITIAL_PRODUCTS;
+    try { return JSON.parse(saved); } catch { return INITIAL_PRODUCTS; }
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem('orders');
     if (saved === null) return [];
-    try {
-      return JSON.parse(saved);
-    } catch { return []; }
+    try { return JSON.parse(saved); } catch { return []; }
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
     const saved = localStorage.getItem('expenses');
     if (saved === null) return [];
-    try {
-      return JSON.parse(saved);
-    } catch { return []; }
+    try { return JSON.parse(saved); } catch { return []; }
   });
 
   const [accounts, setAccounts] = useState<BankAccount[]>(() => {
     const saved = localStorage.getItem('accounts');
     if (saved === null) return INITIAL_ACCOUNTS;
-    try {
-      return JSON.parse(saved);
-    } catch { return INITIAL_ACCOUNTS; }
+    try { return JSON.parse(saved); } catch { return INITIAL_ACCOUNTS; }
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
     const saved = localStorage.getItem('customers');
-    if (saved === null) return INITIAL_CUSTOMERS; // Primeira vez usando o app
-    try {
-      return JSON.parse(saved);
-    } catch { return INITIAL_CUSTOMERS; }
+    if (saved === null) return INITIAL_CUSTOMERS;
+    try { return JSON.parse(saved); } catch { return INITIAL_CUSTOMERS; }
   });
 
   const [supplies, setSupplies] = useState<Supply[]>(() => {
     const saved = localStorage.getItem('supplies');
     if (saved === null) return [];
-    try {
-      return JSON.parse(saved);
-    } catch { return []; }
+    try { return JSON.parse(saved); } catch { return []; }
   });
 
   const [companySettings, setCompanySettings] = useState<CompanySettings>(() => {
     const saved = localStorage.getItem('companySettings');
     if (saved === null) return INITIAL_COMPANY;
-    try {
-      return JSON.parse(saved);
-    } catch { return INITIAL_COMPANY; }
+    try { return JSON.parse(saved); } catch { return INITIAL_COMPANY; }
   });
 
   const [carriers, setCarriers] = useState<Carrier[]>(() => {
     const saved = localStorage.getItem('carriers');
     if (saved === null) return [];
-    try {
-      return JSON.parse(saved);
-    } catch { return []; }
+    try { return JSON.parse(saved); } catch { return []; }
   });
 
-  // Efeito de persistência automática global - agora salva SEMPRE que houver alteração
   useEffect(() => { 
     try {
       localStorage.setItem('products', JSON.stringify(products)); 
@@ -367,25 +350,14 @@ export default function App() {
 
   const handleClearData = (type: 'orders' | 'financeiro' | 'all') => {
     if (!window.confirm('Atenção: Esta ação é irreversível. Deseja realmente excluir os dados selecionados?')) return;
-    
     if (type === 'orders') {
       setOrders([]);
     } else if (type === 'financeiro') {
       setExpenses([]);
       setAccounts(INITIAL_ACCOUNTS);
     } else if (type === 'all') {
-      // Limpa o localStorage para forçar o recarregamento dos INITIAL_... no próximo refresh ou imediatamente
       localStorage.clear();
-      setOrders([]);
-      setExpenses([]);
-      setCustomers(INITIAL_CUSTOMERS);
-      setProducts(INITIAL_PRODUCTS);
-      setSupplies([]);
-      setAccounts(INITIAL_ACCOUNTS);
-      setCompanySettings(INITIAL_COMPANY);
-      setCarriers([]);
-      alert('O sistema foi limpo e as listas oficiais foram restauradas.');
-      window.location.reload(); // Recarrega para limpar todos os estados e referências
+      window.location.reload();
       return;
     }
     alert('Operação concluída.');
@@ -400,78 +372,24 @@ export default function App() {
     const todayStr = getLocalDateString();
     const receberHoje = orders.filter(o => o.date === todayStr && o.remaining > 0).reduce((acc, o) => acc + o.remaining, 0);
     const pagarHoje = expenses.filter(e => e.dueDate === todayStr && e.status === 'Pendente').reduce((acc, e) => acc + e.value, 0);
-    
-    const totalPedidosPeriodo = filteredOrdersForPeriod.reduce((acc, o) => {
-      if (o.productionStatus === 'Apenas Financeiro') {
-        return acc + o.value;
-      } else {
-        if (o.installments && o.installments > 1) {
-          return acc + (o.paid || 0);
-        } else {
-          return acc + o.value;
-        }
-      }
-    }, 0);
-
-    const totalReceberPeriodo = filteredOrdersForPeriod.reduce((acc, o) => {
-      if (o.productionStatus === 'Apenas Financeiro') {
-        return acc + o.remaining;
-      } else {
-        if (o.installments && o.installments > 1) {
-          return acc;
-        }
-        return acc + o.remaining;
-      }
-    }, 0);
-
-    const totalReceberGeral = orders.reduce((acc, o) => {
-      if (o.productionStatus === 'Apenas Financeiro') {
-        return acc + o.remaining;
-      } else {
-        if (o.installments && o.installments > 1) {
-          return acc;
-        }
-        return acc + o.remaining;
-      }
-    }, 0);
-
+    const totalPedidosPeriodo = filteredOrdersForPeriod.reduce((acc, o) => (o.productionStatus === 'Apenas Financeiro' ? acc + o.value : acc + (o.installments && o.installments > 1 ? (o.paid || 0) : o.value)), 0);
+    const totalReceberPeriodo = filteredOrdersForPeriod.reduce((acc, o) => acc + (o.remaining || 0), 0);
+    const totalReceberGeral = orders.reduce((acc, o) => acc + (o.remaining || 0), 0);
     const receitas = filteredOrdersForPeriod.reduce((acc, o) => acc + o.paid, 0);
     const despesas = filteredExpensesForPeriod.filter(e => e.status === 'Pago').reduce((acc, e) => acc + e.value, 0);
-    
-    return { 
-      receberHoje, 
-      pagarHoje, 
-      totalPedidosPeriodo, 
-      totalReceberPeriodo, 
-      totalReceberGeral, 
-      receitas, 
-      despesas, 
-      lucro: receitas - despesas, 
-      transacoesReceitas: filteredOrdersForPeriod.filter(o => o.paid > 0).length, 
-      transacoesDespesas: filteredExpensesForPeriod.filter(e => e.status === 'Pago').length 
-    };
+    return { receberHoje, pagarHoje, totalPedidosPeriodo, totalReceberPeriodo, totalReceberGeral, receitas, despesas, lucro: receitas - despesas, transacoesReceitas: filteredOrdersForPeriod.filter(o => o.paid > 0).length, transacoesDespesas: filteredExpensesForPeriod.filter(e => e.status === 'Pago').length };
   }, [filteredOrdersForPeriod, filteredExpensesForPeriod, orders, expenses]);
 
   const handleSaveCustomer = (customerData: any) => {
-    if (customerToEdit) {
-      setCustomers(prev => prev.map(c => c.id === customerToEdit.id ? { ...c, ...customerData } : c).sort((a, b) => a.name.localeCompare(b.name)));
-    } else {
-      const newCustomer: Customer = { id: Math.random().toString(36).substr(2, 9), totalOrders: 0, status: 'Ativo', ...customerData };
-      setCustomers(prev => [newCustomer, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
-    }
-    setIsNewCustomerModalOpen(false);
-    setCustomerToEdit(null);
+    if (customerToEdit) { setCustomers(prev => prev.map(c => c.id === customerToEdit.id ? { ...c, ...customerData } : c).sort((a, b) => a.name.localeCompare(b.name))); }
+    else { setCustomers(prev => [{ id: Math.random().toString(36).substr(2, 9), totalOrders: 0, status: 'Ativo', ...customerData }, ...prev].sort((a, b) => a.name.localeCompare(b.name))); }
+    setIsNewCustomerModalOpen(false); setCustomerToEdit(null);
   };
 
   const handleSaveSupply = (supplyData: any) => {
-    if (supplyToEdit) {
-      setSupplies(prev => prev.map(s => s.id === supplyToEdit.id ? { ...s, ...supplyData, id: s.id } : s).sort((a, b) => a.name.localeCompare(b.name)));
-    } else {
-      const supply: Supply = { id: Math.random().toString(36).substr(2, 9), ...supplyData };
-      setSupplies(prev => [supply, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
-    }
-    setIsNewSupplyModalOpen(false);
-    setSupplyToEdit(null);
+    if (supplyToEdit) { setSupplies(prev => prev.map(s => s.id === supplyToEdit.id ? { ...s, ...supplyData, id: s.id } : s).sort((a, b) => a.name.localeCompare(b.name))); }
+    else { setSupplies(prev => [{ id: Math.random().toString(36).substr(2, 9), ...supplyData }, ...prev].sort((a, b) => a.name.localeCompare(b.name))); }
+    setIsNewSupplyModalOpen(false); setSupplyToEdit(null);
   };
 
   const handleSaveOrder = (orderData: any) => {
@@ -495,41 +413,22 @@ export default function App() {
           financialRecurrences.push({ ...orderData, id: `${baseId}-P${i + 1}`, date: getRecurrenceDate(firstPayDate, 'Mensal', i), value: installmentValue, paid: 0, remaining: installmentValue, status: 'Pendente', productionStatus: 'Apenas Financeiro', items: [{ description: `Parcela ${i + 1}/${installments} ref. Pedido #${baseId}`, quantity: 1, unitPrice: installmentValue }], installments: 1 });
         }
         setOrders(prev => [mainOrder, ...financialRecurrences, ...prev]);
-        if (entry > 0 && orderData.accountName) {
-          setAccounts(prev => prev.map(acc => acc.name === orderData.accountName ? { ...acc, balance: acc.balance + entry } : acc));
-        }
+        if (entry > 0 && orderData.accountName) { setAccounts(prev => prev.map(acc => acc.name === orderData.accountName ? { ...acc, balance: acc.balance + entry } : acc)); }
       } else {
-        const order: Order = { id: baseId, date: currentDate, ...orderData, installments: 1 };
-        setOrders(prev => [order, ...prev]);
-        if (orderData.paid > 0 && orderData.accountName) {
-          setAccounts(prev => prev.map(acc => acc.name === orderData.accountName ? { ...acc, balance: acc.balance + orderData.paid } : acc));
-        }
+        setOrders(prev => [{ id: baseId, date: currentDate, ...orderData, installments: 1 }, ...prev]);
+        if (orderData.paid > 0 && orderData.accountName) { setAccounts(prev => prev.map(acc => acc.name === orderData.accountName ? { ...acc, balance: acc.balance + orderData.paid } : acc)); }
       }
       setCustomers(prev => prev.map(c => c.name === orderData.customer ? { ...c, totalOrders: c.totalOrders + 1 } : c));
     }
-    setIsNewOrderModalOpen(false);
-    setOrderToEdit(null);
+    setIsNewOrderModalOpen(false); setOrderToEdit(null);
   };
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: Order['productionStatus']) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, productionStatus: newStatus } : o));
-  };
-
-  const handleDeleteOrder = (orderId: string) => {
-    if (window.confirm('Deseja realmente excluir este pedido? Esta ação não pode ser desfeita.')) {
-      setOrders(prev => prev.filter(o => o.id !== orderId));
-    }
-  };
-
+  const handleUpdateOrderStatus = (orderId: string, newStatus: Order['productionStatus']) => { setOrders(prev => prev.map(o => o.id === orderId ? { ...o, productionStatus: newStatus } : o)); };
+  const handleDeleteOrder = (orderId: string) => { if (window.confirm('Deseja realmente excluir este pedido?')) { setOrders(prev => prev.filter(o => o.id !== orderId)); } };
   const handleSaveProduct = (productData: any) => {
-    if (productToEdit) {
-      setProducts(prev => prev.map(p => p.id === productToEdit.id ? { ...p, ...productData, id: p.id } : p).sort((a, b) => a.name.localeCompare(b.name)));
-    } else {
-      const product: Product = { id: Math.random().toString(36).substr(2, 9), ...productData };
-      setProducts(prev => [product, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
-    }
-    setIsNewProductModalOpen(false);
-    setProductToEdit(null);
+    if (productToEdit) { setProducts(prev => prev.map(p => p.id === productToEdit.id ? { ...p, ...productData, id: p.id } : p).sort((a, b) => a.name.localeCompare(b.name))); }
+    else { setProducts(prev => [{ id: Math.random().toString(36).substr(2, 9), ...productData }, ...prev].sort((a, b) => a.name.localeCompare(b.name))); }
+    setIsNewProductModalOpen(false); setProductToEdit(null);
   };
 
   const handleSaveTransaction = (data: any) => {
@@ -542,12 +441,8 @@ export default function App() {
           recurrences.push({ ...newExpense, id: `${id}-R${i}`, dueDate: getRecurrenceDate(data.dueDate, data.recurrenceFrequency, i), status: 'Pendente' });
         }
         setExpenses(prev => [...prev, newExpense, ...recurrences]);
-      } else {
-        setExpenses(prev => [...prev, newExpense]);
-      }
-      if (data.status === 'Pago') {
-        setAccounts(prev => prev.map(acc => acc.name === data.accountName ? { ...acc, balance: acc.balance - data.value } : acc));
-      }
+      } else { setExpenses(prev => [...prev, newExpense]); }
+      if (data.status === 'Pago') { setAccounts(prev => prev.map(acc => acc.name === data.accountName ? { ...acc, balance: acc.balance - data.value } : acc)); }
     } else {
       const newOrder: Order = { id: `REC-${id}`, customer: 'Lançamento Avulso', value: data.value, paid: data.status === 'Pago' ? data.value : 0, remaining: data.status === 'Pago' ? 0 : data.value, date: data.dueDate, status: data.status, productionStatus: 'Apenas Financeiro', items: [{ description: data.description, quantity: data.quantity, unitPrice: data.unitPrice }], paymentMethod: data.paymentMethod, accountName: data.accountName, installments: 1 };
       if (data.isRecurring && data.recurrenceFrequency && data.recurrenceCount) {
@@ -556,12 +451,8 @@ export default function App() {
           recurrences.push({ ...newOrder, id: `REC-${id}-R${i}`, date: getRecurrenceDate(data.dueDate, data.recurrenceFrequency, i), paid: 0, remaining: data.value, status: 'Pendente', installments: 1 });
         }
         setOrders(prev => [...prev, newOrder, ...recurrences]);
-      } else {
-        setOrders(prev => [...prev, newOrder]);
-      }
-      if (data.status === 'Pago') {
-        setAccounts(prev => prev.map(acc => acc.name === data.accountName ? { ...acc, balance: acc.balance + data.value } : acc));
-      }
+      } else { setOrders(prev => [...prev, newOrder]); }
+      if (data.status === 'Pago') { setAccounts(prev => prev.map(acc => acc.name === data.accountName ? { ...acc, balance: acc.balance + data.value } : acc)); }
     }
   };
 
@@ -569,11 +460,7 @@ export default function App() {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
     const amountToPay = order.remaining;
-    setOrders(prev => {
-      const updated = prev.map(o => o.id === orderId ? { ...o, paid: o.paid + amountToPay, remaining: 0, status: 'Pago' as const } : o);
-      if (viewingOrder && viewingOrder.id === orderId) setViewingOrder({ ...viewingOrder, paid: viewingOrder.paid + amountToPay, remaining: 0, status: 'Pago' as const });
-      return updated;
-    });
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, paid: o.paid + amountToPay, remaining: 0, status: 'Pago' as const } : o));
     const targetAccountName = order.accountName || accounts[0]?.name;
     if (targetAccountName) setAccounts(prev => prev.map(acc => acc.name === targetAccountName ? { ...acc, balance: acc.balance + amountToPay } : acc));
   };
@@ -590,8 +477,7 @@ export default function App() {
     setOrders(prev => prev.map(o => {
       if (o.id === orderId) {
         const currentStatus = o.productionStatus || 'Pedido em aberto';
-        const currentIndex = STAGES.indexOf(currentStatus as any);
-        const nextStatus = STAGES[currentIndex + 1] || currentStatus;
+        const nextStatus = STAGES[STAGES.indexOf(currentStatus as any) + 1] || currentStatus;
         return { ...o, productionStatus: nextStatus as any };
       }
       return o;
@@ -639,6 +525,7 @@ export default function App() {
                   </div>
                   <FinancialSummary stats={calculatedStats} hideValues={hideValues} />
                   <BankAccounts accounts={accounts} hideValues={hideValues} onOpenTransfer={() => setIsTransferModalOpen(true)} onOpenNewAccount={() => setIsNewAccountModalOpen(true)} onDeleteAccount={(id) => setAccounts(prev => prev.filter(acc => acc.id !== id))} />
+                  <FinancialRegistry orders={filteredOrdersForPeriod} expenses={filteredExpensesForPeriod} accounts={accounts} hideValues={hideValues} dateRange={dateRange} />
                 </div>
               )}
               {activeView === 'insumos' && <SuppliesGrid supplies={supplies} onNewSupply={() => setIsNewSupplyModalOpen(true)} onEditSupply={(s) => { setSupplyToEdit(s); setIsNewSupplyModalOpen(true); }} onDeleteSupply={(id) => setSupplies(prev => prev.filter(s => s.id !== id))} />}
@@ -650,7 +537,6 @@ export default function App() {
           </>
         )}
       </div>
-
       <NewOrderModal isOpen={isNewOrderModalOpen} orderToEdit={orderToEdit} onClose={() => {setIsNewOrderModalOpen(false); setOrderToEdit(null);}} onSave={handleSaveOrder} customers={customers} products={products} accounts={accounts} carriers={carriers} />
       <NewProductModal isOpen={isNewProductModalOpen} productToEdit={productToEdit} onClose={() => { setIsNewProductModalOpen(false); setProductToEdit(null); }} onSave={handleSaveProduct} configuredMaterials={companySettings.materials} configuredCategories={companySettings.categories} />
       <NewCustomerModal isOpen={isNewCustomerModalOpen} customerToEdit={customerToEdit} onClose={() => { setIsNewCustomerModalOpen(false); setCustomerToEdit(null); }} onSave={handleSaveCustomer} />
