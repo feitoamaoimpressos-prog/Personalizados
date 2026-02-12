@@ -261,11 +261,11 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
             </div>
           </div>
 
-          {/* Itens com Seleção de Produtos */}
+          {/* Itens com Seleção de Produtos - GRID AJUSTADA */}
           <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
             <h3 className="text-xs font-bold uppercase text-slate-500">Produtos / Serviços</h3>
             <div className="grid grid-cols-12 gap-3 items-end">
-              <div className="col-span-12 md:col-span-5 relative">
+              <div className="col-span-12 md:col-span-4 relative">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Item (Busca ou Manual)</label>
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -298,7 +298,9 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                   </div>
                 )}
               </div>
-              <div className="col-span-3 md:col-span-1">
+              
+              {/* Ajuste do tamanho do campo de Quantidade */}
+              <div className="col-span-4 md:col-span-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Qtd</label>
                 <input 
                   type="number" 
@@ -307,6 +309,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 outline-none" 
                 />
               </div>
+
               <div className="col-span-4 md:col-span-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Preço Unit.</label>
                 <input 
@@ -316,14 +319,17 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm bg-white text-slate-900 font-bold focus:ring-2 focus:ring-blue-500/20 outline-none" 
                 />
               </div>
-              <div className="col-span-5 md:col-span-3">
-                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Valor Total</label>
-                <div className="px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 font-black">
-                  R$ {currentItemSubtotal.toFixed(2)}
+
+              <div className="col-span-4 md:col-span-3">
+                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Subtotal</label>
+                <div className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-blue-600 font-black flex items-center justify-between">
+                  <span className="text-[10px] text-slate-300 font-bold uppercase">R$</span>
+                  {currentItemSubtotal.toFixed(2)}
                 </div>
               </div>
-              <div className="col-span-3 md:col-span-1">
-                <button onClick={addItem} className="w-full h-11 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-black transition-colors">
+
+              <div className="col-span-12 md:col-span-1">
+                <button onClick={addItem} className="w-full h-11 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-black transition-colors shadow-lg active:scale-95">
                   <Plus className="w-5 h-5" />
                 </button>
               </div>
@@ -342,7 +348,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({ isOpen, onClose, o
                   </thead>
                   <tbody>
                     {items.map((it, i) => (
-                      <tr key={i} className="border-b border-slate-100 last:border-0">
+                      <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
                         <td className="py-3 px-4 font-bold text-slate-900">{it.description}</td>
                         <td className="py-3 px-4 text-center font-bold text-slate-900">{it.quantity}</td>
                         <td className="py-3 px-4 text-right font-black text-slate-900">R$ {(it.quantity * it.unitPrice).toFixed(2)}</td>
