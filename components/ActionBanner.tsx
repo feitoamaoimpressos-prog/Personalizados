@@ -1,16 +1,17 @@
 
 import React, { useState, useMemo } from 'react';
-import { Eye, CheckCircle, Wallet, ChevronDown, ChevronUp } from 'lucide-react';
+import { Eye, CheckCircle, Wallet, ChevronDown, ChevronUp, Edit3 } from 'lucide-react';
 import { Order } from '../types';
 
 interface ActionBannerProps {
   orders: Order[];
   onSettleOrder: (orderId: string) => void;
   onViewOrder: (order: Order) => void;
+  onEditOrder: (order: Order) => void;
   hideValues: boolean;
 }
 
-export const ActionBanner: React.FC<ActionBannerProps> = ({ orders, onSettleOrder, onViewOrder, hideValues }) => {
+export const ActionBanner: React.FC<ActionBannerProps> = ({ orders, onSettleOrder, onViewOrder, onEditOrder, hideValues }) => {
   const [isMinimized, setIsMinimized] = useState(true);
 
   // Filtragem para mostrar apenas o que é efetivamente recebível neste período
@@ -111,6 +112,16 @@ export const ActionBanner: React.FC<ActionBannerProps> = ({ orders, onSettleOrde
                               title="Ver Detalhes"
                             >
                               <Eye className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditOrder(order);
+                              }}
+                              className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-orange-500 transition-all border border-transparent hover:border-slate-100"
+                              title="Editar"
+                            >
+                              <Edit3 className="w-4 h-4" />
                             </button>
                             <button 
                               onClick={(e) => {

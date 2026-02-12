@@ -1,17 +1,18 @@
 
 import React, { useState } from 'react';
-import { Eye, CheckCircle, CreditCard, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Eye, CheckCircle, CreditCard, Plus, ChevronDown, ChevronUp, Edit3 } from 'lucide-react';
 import { Expense, BankAccount } from '../types';
 
 interface PayableBannerProps {
   expenses: Expense[];
   accounts: BankAccount[];
   onSettleExpense: (expenseId: string, accountId: string) => void;
+  onEditExpense: (expense: Expense) => void;
   onNewTransaction: () => void;
   hideValues: boolean;
 }
 
-export const PayableBanner: React.FC<PayableBannerProps> = ({ expenses, accounts, onSettleExpense, onNewTransaction, hideValues }) => {
+export const PayableBanner: React.FC<PayableBannerProps> = ({ expenses, accounts, onSettleExpense, onEditExpense, onNewTransaction, hideValues }) => {
   const [isMinimized, setIsMinimized] = useState(true);
   const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string>>({});
 
@@ -129,9 +130,22 @@ export const PayableBanner: React.FC<PayableBannerProps> = ({ expenses, accounts
                               <button 
                                 className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-blue-500 transition-all border border-transparent hover:border-slate-100"
                                 title="Ver Detalhes"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEditExpense(expense);
+                                }}
                               >
                                 <Eye className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEditExpense(expense);
+                                }}
+                                className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-orange-500 transition-all border border-transparent hover:border-slate-100"
+                                title="Editar"
+                              >
+                                <Edit3 className="w-4 h-4" />
                               </button>
                               <button 
                                 onClick={(e) => {

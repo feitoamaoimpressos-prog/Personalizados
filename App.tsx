@@ -312,6 +312,7 @@ export default function App() {
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [supplyToEdit, setSupplyToEdit] = useState<Supply | null>(null);
+  const [expenseToEdit, setExpenseToEdit] = useState<Expense | null>(null);
   
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -425,6 +426,7 @@ export default function App() {
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: Order['productionStatus']) => { setOrders(prev => prev.map(o => o.id === orderId ? { ...o, productionStatus: newStatus } : o)); };
   const handleDeleteOrder = (orderId: string) => { if (window.confirm('Deseja realmente excluir este pedido?')) { setOrders(prev => prev.filter(o => o.id !== orderId)); } };
+  
   const handleSaveProduct = (productData: any) => {
     if (productToEdit) { setProducts(prev => prev.map(p => p.id === productToEdit.id ? { ...p, ...productData, id: p.id } : p).sort((a, b) => a.name.localeCompare(b.name))); }
     else { setProducts(prev => [{ id: Math.random().toString(36).substr(2, 9), ...productData }, ...prev].sort((a, b) => a.name.localeCompare(b.name))); }
@@ -432,6 +434,13 @@ export default function App() {
   };
 
   const handleSaveTransaction = (data: any) => {
+    if (expenseToEdit) {
+      setExpenses(prev => prev.map(e => e.id === expenseToEdit.id ? { ...e, ...data, id: e.id } : e));
+      setExpenseToEdit(null);
+      setIsNewTransactionModalOpen(false);
+      return;
+    }
+
     const id = Math.random().toString(36).substr(2, 9);
     if (data.type === 'Despesa') {
       const newExpense: Expense = { id, description: data.description, value: data.value, dueDate: data.dueDate, status: data.status, category: data.category, quantity: data.quantity, unitPrice: data.unitPrice, paymentMethod: data.paymentMethod, accountName: data.accountName, observations: data.observations };
@@ -471,6 +480,12 @@ export default function App() {
     setExpenses(prev => prev.map(e => e.id === expenseId ? { ...e, status: 'Pago' } : e));
     let targetAccount = accounts.find(a => a.id === accountId) || accounts.find(a => a.name === expense.accountName) || accounts[0];
     if (targetAccount) setAccounts(prev => prev.map(acc => acc.id === targetAccount?.id ? { ...acc, balance: acc.balance - expense.value } : acc));
+  };
+
+  const handleDeleteExpense = (id: string) => {
+    if (window.confirm('Deseja excluir este registro de despesa?')) {
+      setExpenses(prev => prev.filter(e => e.id !== id));
+    }
   };
 
   const handleAdvanceStage = (orderId: string) => {
@@ -520,12 +535,12 @@ export default function App() {
                 <div className="space-y-8">
                   <QuickStats stats={calculatedStats} hideValues={hideValues} />
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                    <ActionBanner orders={filteredOrdersForPeriod} onSettleOrder={handleSettleOrder} onViewOrder={setViewingOrder} hideValues={hideValues} />
-                    <PayableBanner expenses={filteredExpensesForPeriod} accounts={accounts} onSettleExpense={handleSettleExpense} onNewTransaction={() => setIsNewTransactionModalOpen(true)} hideValues={hideValues} />
+                    <ActionBanner orders={filteredOrdersForPeriod} onSettleOrder={handleSettleOrder} onViewOrder={setViewingOrder} onEditOrder={(o) => {setOrderToEdit(o); setIsNewOrderModalOpen(true);}} hideValues={hideValues} />
+                    <PayableBanner expenses={filteredExpensesForPeriod} accounts={accounts} onSettleExpense={handleSettleExpense} onEditExpense={(e) => {setExpenseToEdit(e); setIsNewTransactionModalOpen(true);}} onNewTransaction={() => setIsNewTransactionModalOpen(true)} hideValues={hideValues} />
                   </div>
                   <FinancialSummary stats={calculatedStats} hideValues={hideValues} />
                   <BankAccounts accounts={accounts} hideValues={hideValues} onOpenTransfer={() => setIsTransferModalOpen(true)} onOpenNewAccount={() => setIsNewAccountModalOpen(true)} onDeleteAccount={(id) => setAccounts(prev => prev.filter(acc => acc.id !== id))} />
-                  <FinancialRegistry orders={filteredOrdersForPeriod} expenses={filteredExpensesForPeriod} accounts={accounts} hideValues={hideValues} dateRange={dateRange} />
+                  <FinancialRegistry orders={filteredOrdersForPeriod} expenses={filteredExpensesForPeriod} accounts={accounts} hideValues={hideValues} dateRange={dateRange} onDeleteTransaction={(id, type) => type === 'Receita' ? handleDeleteOrder(id) : handleDeleteExpense(id)} />
                 </div>
               )}
               {activeView === 'insumos' && <SuppliesGrid supplies={supplies} onNewSupply={() => setIsNewSupplyModalOpen(true)} onEditSupply={(s) => { setSupplyToEdit(s); setIsNewSupplyModalOpen(true); }} onDeleteSupply={(id) => setSupplies(prev => prev.filter(s => s.id !== id))} />}
@@ -543,7 +558,7 @@ export default function App() {
       <NewSupplyModal isOpen={isNewSupplyModalOpen} supplyToEdit={supplyToEdit} onClose={() => { setIsNewSupplyModalOpen(false); setSupplyToEdit(null); }} onSave={handleSaveSupply} />
       <NewAccountModal isOpen={isNewAccountModalOpen} onClose={() => setIsNewAccountModalOpen(false)} onSave={(acc) => setAccounts(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), ...acc }])} />
       <TransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} accounts={accounts} onTransfer={(fromId, toId, amount) => setAccounts(prev => prev.map(acc => acc.id === fromId ? { ...acc, balance: acc.balance - amount } : acc.id === toId ? { ...acc, balance: acc.balance + amount } : acc))} />
-      <NewTransactionModal isOpen={isNewTransactionModalOpen} onClose={() => setIsNewTransactionModalOpen(false)} accounts={accounts} products={products} expenseCategories={companySettings.expenseCategories} onSave={handleSaveTransaction} />
+      <NewTransactionModal isOpen={isNewTransactionModalOpen} expenseToEdit={expenseToEdit} onClose={() => {setIsNewTransactionModalOpen(false); setExpenseToEdit(null);}} accounts={accounts} products={products} expenseCategories={companySettings.expenseCategories} onSave={handleSaveTransaction} />
     </div>
   );
 }

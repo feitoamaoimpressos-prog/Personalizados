@@ -10,7 +10,8 @@ import {
   Tag, 
   Wallet,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { Order, Expense, BankAccount } from '../types';
 
@@ -20,11 +21,12 @@ interface FinancialRegistryProps {
   accounts: BankAccount[];
   hideValues: boolean;
   dateRange: { start: string; end: string };
+  onDeleteTransaction?: (id: string, type: 'Receita' | 'Despesa') => void;
 }
 
 type TransactionType = 'Todos' | 'Receita' | 'Despesa';
 
-export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, expenses, hideValues, dateRange }) => {
+export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, expenses, hideValues, dateRange, onDeleteTransaction }) => {
   const [filterType, setFilterType] = useState<TransactionType>('Todos');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -63,8 +65,6 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
         });
       } else {
         // É o pedido principal de um parcelamento.
-        // Mostramos o valor da ENTRADA (paga no ato) como o movimento financeiro deste registro principal.
-        // O restante do valor será coberto pelas parcelas "Apenas Financeiro" criadas.
         list.push({
           id: o.id,
           date: o.date,
@@ -72,7 +72,7 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
           category: 'Venda Parcelada',
           type: 'Receita',
           account: o.accountName || 'Caixa Geral',
-          value: o.paid, // Apenas o que foi pago como entrada entra neste registro para não duplicar totais
+          value: o.paid, 
           status: o.paid > 0 ? 'Pago' : 'Pendente',
           isInstallment: false,
           isMainOrder: true,
@@ -204,12 +204,13 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
                 <th className="py-4 px-10">Conta</th>
                 <th className="py-4 px-10 text-right">Valor</th>
                 <th className="py-4 px-10 text-center">Tipo</th>
+                <th className="py-4 px-10 text-center print:hidden">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-24 text-center">
+                  <td colSpan={6} className="py-24 text-center">
                     <div className="flex flex-col items-center gap-2 opacity-30">
                       <AlertCircle className="w-8 h-8 text-slate-400" />
                       <p className="text-xs font-black uppercase tracking-[0.2em] italic">Nenhum registro no período</p>
@@ -257,6 +258,18 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
                       }`}>
                         {t.type} {t.status === 'Pendente' ? '?' : ''}
                       </span>
+                    </td>
+                    <td className="py-6 px-10 text-center print:hidden">
+                       <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteTransaction?.(t.id, t.type);
+                        }}
+                        className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                        title="Excluir Lançamento"
+                       >
+                         <Trash2 className="w-4 h-4" />
+                       </button>
                     </td>
                   </tr>
                 ))
