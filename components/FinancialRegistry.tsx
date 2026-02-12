@@ -8,8 +8,7 @@ import {
   Printer, 
   Calendar, 
   Tag, 
-  Wallet, 
-  Table as TableIcon 
+  Wallet
 } from 'lucide-react';
 import { Order, Expense, BankAccount } from '../types';
 
@@ -91,27 +90,6 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
 
   const handlePrintReport = () => window.print();
 
-  const handleExportCSV = () => {
-    const headers = ["Data", "Descricao", "Categoria", "Conta", "Tipo", "Valor"];
-    const rows = filteredTransactions.map(t => [
-      formatDate(t.date),
-      t.description.replace(/,/g, ';'),
-      t.category,
-      t.account,
-      t.type,
-      t.value.toFixed(2).replace('.', ',')
-    ]);
-    const csvContent = ["\ufeff" + headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `relatorio_financeiro_${dateRange.start}_a_${dateRange.end}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   return (
     <div className="space-y-6">
       {/* Botões de Ação (Topo) - Ocultos na Impressão */}
@@ -142,10 +120,6 @@ export const FinancialRegistry: React.FC<FinancialRegistryProps> = ({ orders, ex
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all">
-            <TableIcon className="w-4 h-4" />
-            Planilha
-          </button>
           <button onClick={handlePrintReport} className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-slate-900/10">
             <Printer className="w-4 h-4" />
             Imprimir
