@@ -82,9 +82,12 @@ export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('producao');
   const [hideValues, setHideValues] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [lastCloudSync, setLastCloudSync] = useState<number>(0);
-  const [syncKey, setSyncKey] = useState<string | null>(null);
   
+  // Controle de Sincronização
+  const [syncKey, setSyncKey] = useState<string | null>(null);
+  const [lastCloudSync, setLastCloudSync] = useState<number>(0);
+  const isSyncingRef = useRef(false); // Bloqueia uploads enquanto processa downloads
+
   const now = new Date();
   const firstDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
   const lastDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
@@ -99,17 +102,13 @@ export default function App() {
   const [companySettings, setCompanySettings] = useState<CompanySettings>(INITIAL_COMPANY);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
 
-  // Ref de controle para evitar uploads circulares durante o download
-  const isImportingRef = useRef(false);
-  const loadingRef = useRef(true);
-
-  // Carregamento Inicial do IndexedDB
+  // 1. Carregamento Inicial do Banco Local
   useEffect(() => {
     async function initDB() {
       try {
         const savedData = await db.load('fullState');
         if (savedData) {
-          isImportingRef.current = true;
+          isSyncingRef.current = true;
           if (savedData.products) setProducts(savedData.products);
           if (savedData.orders) setOrders(savedData.orders);
           if (savedData.expenses) setExpenses(savedData.expenses);
@@ -123,12 +122,12 @@ export default function App() {
           if (savedData.hideValues !== undefined) setHideValues(savedData.hideValues);
           if (savedData.syncKey) setSyncKey(savedData.syncKey);
           if (savedData.lastCloudSync) setLastCloudSync(savedData.lastCloudSync);
-          setTimeout(() => { isImportingRef.current = false; }, 2000);
+          
+          setTimeout(() => { isSyncingRef.current = false; }, 1000);
         }
       } catch (err) {
-        console.error("Erro ao carregar banco de dados local:", err);
+        console.error("Falha ao carregar banco local:", err);
       } finally {
-        loadingRef.current = false;
         setIsInitialized(true);
         setIsLoading(false);
       }
@@ -136,9 +135,9 @@ export default function App() {
     initDB();
   }, []);
 
-  // Salvamento Automático Local e Upload para Nuvem
+  // 2. Salvamento Local e Upload para Nuvem (Debounced)
   useEffect(() => { 
-    if (!isInitialized || loadingRef.current || isImportingRef.current) return;
+    if (!isInitialized || isSyncingRef.current) return;
     
     const timer = setTimeout(async () => {
       try {
@@ -147,39 +146,41 @@ export default function App() {
           supplies, companySettings, carriers, activeView, 
           dateRange, hideValues, syncKey, lastCloudSync
         };
+        
+        // Salva localmente sempre
         await db.save('fullState', stateToSave);
         setLastSaved(new Date());
 
-        // Só faz upload se tiver chave e NÃO estiver no meio de um download
-        if (syncKey && !isImportingRef.current) {
+        // Se a nuvem estiver ativa e não estivermos baixando dados, sobe as alterações
+        if (syncKey && !isSyncingRef.current) {
           const success = await syncService.upload(syncKey, stateToSave);
           if (success) {
-            const newTs = Date.now();
-            setLastCloudSync(newTs);
+            setLastCloudSync(Date.now());
           }
         }
       } catch (e) {
-        console.error("Falha no salvamento:", e);
+        console.error("Falha no auto-save:", e);
       }
     }, 2000); 
 
     return () => clearTimeout(timer);
   }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues, syncKey, isInitialized]);
 
-  // Polling de Sincronização (Download)
+  // 3. Polling de Download (Verifica se outros computadores mudaram algo)
   useEffect(() => {
     if (!syncKey || !isInitialized) return;
 
     const interval = setInterval(async () => {
-      if (isImportingRef.current) return; // Não baixa se já estiver processando algo
+      if (isSyncingRef.current) return;
 
       const cloudData = await syncService.download(syncKey);
-      if (cloudData && cloudData.timestamp > lastCloudSync) {
-        console.log("Nuvem atualizada em:", new Date(cloudData.timestamp).toLocaleTimeString());
-        handleImportData(cloudData.data);
+      // Se a nuvem tem um timestamp maior que o nosso último sync registrado
+      if (cloudData && cloudData.timestamp > lastCloudSync + 1000) {
+        console.log("Detectada atualização remota...");
+        handleImportData(cloudData.data, false); // Importa sem disparar novo upload
         setLastCloudSync(cloudData.timestamp);
       }
-    }, 20000); // Frequência aumentada para 20s
+    }, 30000); // 30 segundos é um bom equilíbrio
 
     return () => clearInterval(interval);
   }, [syncKey, lastCloudSync, isInitialized]);
@@ -212,10 +213,10 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportData = (data: any) => {
+  const handleImportData = (data: any, shouldUploadAfter: boolean = true) => {
     if (!data) return;
     try {
-      isImportingRef.current = true; // Bloqueia uploads imediatos
+      isSyncingRef.current = true; // Bloqueia upload imediato
       if (data.products) setProducts(data.products);
       if (data.orders) setOrders(data.orders);
       if (data.expenses) setExpenses(data.expenses);
@@ -226,13 +227,17 @@ export default function App() {
       if (data.carriers) setCarriers(data.carriers);
       if (data.syncKey) setSyncKey(data.syncKey);
       
-      // Libera o bloqueio após o React processar todos os estados
+      // Libera após o React renderizar tudo
       setTimeout(() => {
-        isImportingRef.current = false;
-      }, 3000);
+        isSyncingRef.current = !shouldUploadAfter; 
+        if (!shouldUploadAfter) {
+          // Se não deve subir, aguarda mais um pouco para garantir que mudanças de estado não disparem useEffect
+          setTimeout(() => { isSyncingRef.current = false; }, 2000);
+        }
+      }, 500);
     } catch (error) {
       console.error('Erro na importação:', error);
-      isImportingRef.current = false;
+      isSyncingRef.current = false;
     }
   };
 
@@ -402,8 +407,8 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
         <div className="text-center">
-          <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">Sincronizando Banco de Dados</p>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Carregando informações locais...</p>
+          <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">Iniciando Dashboard</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Sincronizando banco local...</p>
         </div>
       </div>
     );
@@ -461,7 +466,12 @@ export default function App() {
               {activeView === 'produtos' && <ProductsGrid products={products} onNewProduct={() => setIsNewProductModalOpen(true)} onEditProduct={(p) => { setProductToEdit(p); setIsNewProductModalOpen(true); }} onDeleteProduct={(id) => setProducts(prev => prev.filter(p => p.id !== id))} />}
               {activeView === 'configuracoes' && <SettingsGrid settings={companySettings} carriers={carriers} onSaveSettings={setCompanySettings} onSaveCarriers={setCarriers} onExport={handleExportData} onImport={(file) => {
                 const reader = new FileReader();
-                reader.onload = (e) => handleImportData(JSON.parse(e.target?.result as string));
+                reader.onload = (e) => {
+                  try {
+                    const data = JSON.parse(e.target?.result as string);
+                    handleImportData(data, true);
+                  } catch (err) { alert('Erro ao ler arquivo de backup.'); }
+                };
                 reader.readAsText(file);
               }} onClearData={handleClearData} currentFullData={{ products, orders, expenses, accounts, customers, supplies, companySettings, carriers }} />}
             </div>
@@ -478,7 +488,7 @@ export default function App() {
       <SyncTool 
         isOpen={isSyncModalOpen} 
         onClose={() => setIsSyncModalOpen(false)} 
-        onImport={handleImportData}
+        onImport={(data) => handleImportData(data, false)}
         onSetKey={(key) => {
           setSyncKey(key);
           setLastCloudSync(0); 
