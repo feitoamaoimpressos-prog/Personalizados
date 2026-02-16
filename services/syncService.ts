@@ -2,47 +2,52 @@
 const API_BASE = 'https://api.keyvalue.xyz';
 
 export const syncService = {
-  // Gera uma chave aleatória de 8 caracteres para o usuário
   generateKey(): string {
     return Math.random().toString(36).substring(2, 10).toUpperCase();
   },
 
-  // Salva os dados na nuvem
   async upload(key: string, data: any): Promise<boolean> {
     try {
+      // Removemos o que não precisa subir para a nuvem para economizar espaço
+      const cleanData = { ...data };
+      delete cleanData.activeView;
+      delete cleanData.isLoading;
+      
       const payload = {
         timestamp: Date.now(),
-        data: btoa(unescape(encodeURIComponent(JSON.stringify(data))))
+        source: 'browser-client',
+        data: btoa(encodeURIComponent(JSON.stringify(cleanData)))
       };
       
       const response = await fetch(`${API_BASE}/${key}`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       
       return response.ok;
     } catch (e) {
-      console.error("Erro no upload para nuvem:", e);
+      console.error("Erro crítico no upload:", e);
       return false;
     }
   },
 
-  // Busca os dados da nuvem
   async download(key: string): Promise<{data: any, timestamp: number} | null> {
     try {
-      const response = await fetch(`${API_BASE}/${key}`);
+      // Cache busting para garantir que pegamos o dado mais novo
+      const response = await fetch(`${API_BASE}/${key}?t=${Date.now()}`);
       if (!response.ok) return null;
       
       const result = await response.json();
-      if (!result.data) return null;
+      if (!result || !result.data) return null;
 
-      const decodedData = JSON.parse(decodeURIComponent(escape(atob(result.data))));
+      const decodedData = JSON.parse(decodeURIComponent(atob(result.data)));
       return {
         data: decodedData,
-        timestamp: result.timestamp
+        timestamp: result.timestamp || 0
       };
     } catch (e) {
-      console.error("Erro no download da nuvem:", e);
+      console.error("Erro crítico no download:", e);
       return null;
     }
   }

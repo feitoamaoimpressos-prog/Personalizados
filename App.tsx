@@ -99,6 +99,8 @@ export default function App() {
   const [companySettings, setCompanySettings] = useState<CompanySettings>(INITIAL_COMPANY);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
 
+  // Ref de controle para evitar uploads circulares durante o download
+  const isImportingRef = useRef(false);
   const loadingRef = useRef(true);
 
   // Carregamento Inicial do IndexedDB
@@ -107,6 +109,7 @@ export default function App() {
       try {
         const savedData = await db.load('fullState');
         if (savedData) {
+          isImportingRef.current = true;
           if (savedData.products) setProducts(savedData.products);
           if (savedData.orders) setOrders(savedData.orders);
           if (savedData.expenses) setExpenses(savedData.expenses);
@@ -120,6 +123,7 @@ export default function App() {
           if (savedData.hideValues !== undefined) setHideValues(savedData.hideValues);
           if (savedData.syncKey) setSyncKey(savedData.syncKey);
           if (savedData.lastCloudSync) setLastCloudSync(savedData.lastCloudSync);
+          setTimeout(() => { isImportingRef.current = false; }, 2000);
         }
       } catch (err) {
         console.error("Erro ao carregar banco de dados local:", err);
@@ -134,7 +138,7 @@ export default function App() {
 
   // Salvamento Automático Local e Upload para Nuvem
   useEffect(() => { 
-    if (!isInitialized || loadingRef.current) return;
+    if (!isInitialized || loadingRef.current || isImportingRef.current) return;
     
     const timer = setTimeout(async () => {
       try {
@@ -146,15 +150,18 @@ export default function App() {
         await db.save('fullState', stateToSave);
         setLastSaved(new Date());
 
-        // Se a sincronização estiver ativa, faz upload
-        if (syncKey) {
+        // Só faz upload se tiver chave e NÃO estiver no meio de um download
+        if (syncKey && !isImportingRef.current) {
           const success = await syncService.upload(syncKey, stateToSave);
-          if (success) setLastCloudSync(Date.now());
+          if (success) {
+            const newTs = Date.now();
+            setLastCloudSync(newTs);
+          }
         }
       } catch (e) {
-        console.error("Falha no auto-salvamento:", e);
+        console.error("Falha no salvamento:", e);
       }
-    }, 1500); 
+    }, 2000); 
 
     return () => clearTimeout(timer);
   }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues, syncKey, isInitialized]);
@@ -164,13 +171,15 @@ export default function App() {
     if (!syncKey || !isInitialized) return;
 
     const interval = setInterval(async () => {
+      if (isImportingRef.current) return; // Não baixa se já estiver processando algo
+
       const cloudData = await syncService.download(syncKey);
       if (cloudData && cloudData.timestamp > lastCloudSync) {
-        console.log("Detectadas mudanças na nuvem, atualizando...");
+        console.log("Nuvem atualizada em:", new Date(cloudData.timestamp).toLocaleTimeString());
         handleImportData(cloudData.data);
         setLastCloudSync(cloudData.timestamp);
       }
-    }, 30000); // Verifica a cada 30 segundos
+    }, 20000); // Frequência aumentada para 20s
 
     return () => clearInterval(interval);
   }, [syncKey, lastCloudSync, isInitialized]);
@@ -204,7 +213,9 @@ export default function App() {
   };
 
   const handleImportData = (data: any) => {
+    if (!data) return;
     try {
+      isImportingRef.current = true; // Bloqueia uploads imediatos
       if (data.products) setProducts(data.products);
       if (data.orders) setOrders(data.orders);
       if (data.expenses) setExpenses(data.expenses);
@@ -214,8 +225,14 @@ export default function App() {
       if (data.companySettings) setCompanySettings(data.companySettings);
       if (data.carriers) setCarriers(data.carriers);
       if (data.syncKey) setSyncKey(data.syncKey);
+      
+      // Libera o bloqueio após o React processar todos os estados
+      setTimeout(() => {
+        isImportingRef.current = false;
+      }, 3000);
     } catch (error) {
-      console.error('Erro ao processar dados de restauração:', error);
+      console.error('Erro na importação:', error);
+      isImportingRef.current = false;
     }
   };
 
@@ -464,7 +481,7 @@ export default function App() {
         onImport={handleImportData}
         onSetKey={(key) => {
           setSyncKey(key);
-          setLastCloudSync(0); // Força um primeiro download
+          setLastCloudSync(0); 
         }}
         currentData={{ products, orders, expenses, accounts, customers, supplies, companySettings, carriers }}
       />
