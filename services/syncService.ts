@@ -6,24 +6,35 @@ export const syncService = {
     return Math.random().toString(36).substring(2, 12).toUpperCase();
   },
 
-  // Limpa os dados removendo propriedades de UI e imagens pesadas
-  // Isso é crucial para não exceder o limite de 64kb/100kb do servidor gratuito
+  // Limpeza profunda para garantir que o pareamento funcione em redes instáveis
   cleanupForSync(data: any): any {
     const clean = { ...data };
     
-    // Remove estados de interface que não pertencem ao banco de dados
+    // 1. Remove imagens e logos (pesam muito)
+    if (clean.companySettings) {
+      clean.companySettings = { ...clean.companySettings, logo: '' };
+    }
+
+    // 2. Remove pedidos muito antigos (mais de 60 dias) do histórico para encolher o banco
+    if (clean.orders && clean.orders.length > 50) {
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+      const limitDate = sixtyDaysAgo.toISOString().split('T')[0];
+      
+      clean.orders = clean.orders.filter((o: any) => {
+        // Mantém tudo que não está entregue ou que é recente
+        if (o.productionStatus !== 'Pedido entregue') return true;
+        return o.date >= limitDate;
+      });
+    }
+
+    // 3. Remove metadados de UI
     delete clean.activeView;
     delete clean.dateRange;
     delete clean.hideValues;
     delete clean.isLoading;
     delete clean.isSyncModalOpen;
     delete clean.syncStatus;
-
-    // Remove a Logo para o Sync (Imagens em Base64 são muito pesadas)
-    // A logo continuará salva no banco local de cada PC individualmente
-    if (clean.companySettings) {
-      clean.companySettings = { ...clean.companySettings, logo: '' };
-    }
 
     return clean;
   },
@@ -32,10 +43,9 @@ export const syncService = {
     try {
       const cleaned = this.cleanupForSync(data);
       const str = JSON.stringify(cleaned);
-      // Codificação UTF-8 segura
+      // btoa + encodeURIComponent para suportar caracteres especiais (acentos)
       return btoa(unescape(encodeURIComponent(str)));
     } catch (e) {
-      console.error("Erro na codificação:", e);
       return "";
     }
   },
@@ -45,7 +55,6 @@ export const syncService = {
       const str = decodeURIComponent(escape(atob(base64)));
       return JSON.parse(str);
     } catch (e) {
-      console.error("Erro na decodificação:", e);
       return null;
     }
   },
@@ -54,42 +63,46 @@ export const syncService = {
     try {
       const encodedData = this.encode(data);
       
-      // Verifica tamanho aproximado (Base64 + JSON overhead)
-      if (encodedData.length > 95000) {
-        return { success: false, error: "BANCO MUITO GRANDE. Tente excluir pedidos antigos do histórico." };
+      // Limite de segurança para evitar erro 413
+      if (encodedData.length > 90000) {
+        return { success: false, error: "BANCO MUITO CHEIO. Limpe o histórico de pedidos entregues." };
       }
 
       const payload = {
         timestamp: Date.now(),
         data: encodedData,
-        v: "2.1"
+        v: "2.5"
       };
       
-      // Usamos POST. O keyvalue.xyz aceita POST para criar ou atualizar.
       const response = await fetch(`${API_BASE}/${key}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(payload),
       });
       
       if (!response.ok) {
-        if (response.status === 413) return { success: false, error: "DADOS MUITO PESADOS PARA A NUVEM." };
-        return { success: false, error: `ERRO DO SERVIDOR (${response.status})` };
+        return { success: false, error: `SERVIDOR INSTÁVEL (${response.status})` };
       }
 
       return { success: true };
     } catch (e) {
-      console.error("Cloud Sync: Falha de rede", e);
-      return { success: false, error: "FALHA DE CONEXÃO COM O SERVIDOR." };
+      console.error("Erro de rede no upload:", e);
+      return { success: false, error: "FALHA DE CONEXÃO. Verifique sua internet." };
     }
   },
 
   async download(key: string): Promise<{data: any, timestamp: number} | null> {
     try {
-      // nocache é vital para que o segundo computador veja a mudança do primeiro
-      const response = await fetch(`${API_BASE}/${key}?nocache=${Date.now()}`, {
+      // Usamos cache: no-store e timestamp na URL para forçar o dado mais novo
+      const response = await fetch(`${API_BASE}/${key}?t=${Date.now()}`, {
         method: 'GET',
-        cache: 'no-store'
+        mode: 'cors',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
       });
       
       if (!response.ok) return null;

@@ -83,12 +83,10 @@ export default function App() {
   const [hideValues, setHideValues] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   
-  // Controle de Sincronização
   const [syncKey, setSyncKey] = useState<string | null>(localStorage.getItem('cloud_sync_key'));
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error' | 'idle'>(syncKey ? 'synced' : 'idle');
   const [lastCloudSync, setLastCloudSync] = useState<number>(Number(localStorage.getItem('cloud_last_ts')) || 0);
   
-  // Refs para evitar loops e condições de corrida
   const isSyncingRef = useRef(false);
   const skipNextSyncRef = useRef(false);
 
@@ -106,14 +104,12 @@ export default function App() {
   const [companySettings, setCompanySettings] = useState<CompanySettings>(INITIAL_COMPANY);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
 
-  // 1. Carregamento Inicial do Banco Local (IndexedDB)
   useEffect(() => {
     async function initDB() {
       try {
         const savedData = await db.load('fullState');
         if (savedData) {
           isSyncingRef.current = true;
-          // Aplicamos os dados locais
           if (savedData.products) setProducts(savedData.products);
           if (savedData.orders) setOrders(savedData.orders);
           if (savedData.expenses) setExpenses(savedData.expenses);
@@ -126,7 +122,6 @@ export default function App() {
           if (savedData.dateRange) setDateRange(savedData.dateRange);
           if (savedData.hideValues !== undefined) setHideValues(savedData.hideValues);
           
-          // Sincroniza chaves de nuvem entre IndexedDB e LocalStorage
           const finalSyncKey = localStorage.getItem('cloud_sync_key') || savedData.syncKey;
           if (finalSyncKey) {
             setSyncKey(finalSyncKey);
@@ -148,7 +143,6 @@ export default function App() {
     initDB();
   }, []);
 
-  // 2. Função de Download (Baixar da Nuvem)
   const syncFromCloud = async (force: boolean = false) => {
     if (!syncKey || !isInitialized || isSyncingRef.current) return;
     
@@ -156,10 +150,8 @@ export default function App() {
     try {
       const cloudData = await syncService.download(syncKey);
       
-      // Se a nuvem tiver algo mais novo que o nosso último sync (margem de 2s para evitar conflitos)
-      if (cloudData && (force || cloudData.timestamp > lastCloudSync + 2000)) {
-        console.log("Baixando atualizações da nuvem...");
-        skipNextSyncRef.current = true; // Impede que o estado resultante dispare um novo upload
+      if (cloudData && (force || cloudData.timestamp > lastCloudSync + 3000)) {
+        skipNextSyncRef.current = true; 
         handleImportData(cloudData.data, false);
         setLastCloudSync(cloudData.timestamp);
         localStorage.setItem('cloud_last_ts', cloudData.timestamp.toString());
@@ -172,16 +164,13 @@ export default function App() {
     }
   };
 
-  // 3. Efeito de Monitoramento (Polling e Foco)
   useEffect(() => {
     if (!syncKey || !isInitialized) return;
 
-    // Sincroniza ao focar a aba (voltar do outro PC)
     syncFromCloud();
     window.addEventListener('focus', () => syncFromCloud());
     
-    // Polling contínuo (batimento cardíaco) mais frequente (15s) para parecer "tempo real"
-    const interval = setInterval(() => syncFromCloud(), 15000);
+    const interval = setInterval(() => syncFromCloud(), 20000);
 
     return () => {
       window.removeEventListener('focus', () => syncFromCloud());
@@ -189,11 +178,9 @@ export default function App() {
     };
   }, [syncKey, isInitialized, lastCloudSync]);
 
-  // 4. Salvamento Local e Upload para Nuvem (Ao mudar dados)
   useEffect(() => { 
     if (!isInitialized || isSyncingRef.current) return;
     
-    // Se acabamos de baixar dados, não precisamos subir novamente os mesmos dados
     if (skipNextSyncRef.current) {
       skipNextSyncRef.current = false;
       return;
@@ -207,28 +194,26 @@ export default function App() {
           dateRange, hideValues, syncKey, lastCloudSync
         };
         
-        // Salva sempre no banco local primeiro
         await db.save('fullState', stateToSave);
         setLastSaved(new Date());
 
-        // Se a nuvem estiver ativa, envia a mudança
         if (syncKey) {
           setSyncStatus('syncing');
-          const success = await syncService.upload(syncKey, stateToSave);
-          if (success) {
+          const result = await syncService.upload(syncKey, stateToSave);
+          if (result.success) {
             const newTs = Date.now();
             setLastCloudSync(newTs);
             localStorage.setItem('cloud_last_ts', newTs.toString());
             setSyncStatus('synced');
           } else {
+            console.warn("Falha no Sync:", result.error);
             setSyncStatus('error');
           }
         }
       } catch (e) {
-        console.error("Erro no auto-salvamento:", e);
         setSyncStatus('error');
       }
-    }, 1200); // Delay curto para agrupar mudanças rápidas
+    }, 2000); 
 
     return () => clearTimeout(timer);
   }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues, syncKey, isInitialized]);
@@ -244,11 +229,10 @@ export default function App() {
       if (data.customers) setCustomers(data.customers);
       if (data.supplies) setSupplies(data.supplies);
       
-      // Mesclagem de Configurações: Mantemos a Logo local se a da nuvem vier vazia
       if (data.companySettings) {
         setCompanySettings(prev => ({
           ...data.companySettings,
-          logo: data.companySettings.logo || prev.logo // Preserva a logo local se a remota for nula/vazia
+          logo: prev.logo || data.companySettings.logo 
         }));
       }
 
@@ -259,12 +243,10 @@ export default function App() {
         localStorage.setItem('cloud_sync_key', data.syncKey);
       }
       
-      // Libera após o React digerir todos os estados
       setTimeout(() => {
         isSyncingRef.current = false;
       }, 1000);
     } catch (error) {
-      console.error('Erro na importação crítica:', error);
       isSyncingRef.current = false;
     }
   };
@@ -466,7 +448,7 @@ export default function App() {
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
         <div className="text-center">
           <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">Personalizados FEITO A MÃO</p>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Sincronizando ambiente de trabalho...</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Conectando ambiente seguro...</p>
         </div>
       </div>
     );
@@ -551,7 +533,6 @@ export default function App() {
           setSyncKey(key);
           if (key) {
             localStorage.setItem('cloud_sync_key', key);
-            // Ao setar uma chave nova, forçamos um download imediato
             syncFromCloud(true);
           } else {
             localStorage.removeItem('cloud_sync_key');
