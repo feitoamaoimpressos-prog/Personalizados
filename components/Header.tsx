@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, CheckCircle2, Database } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, Database, Cloud } from 'lucide-react';
 import { DateRangePicker } from './DateRangePicker';
 
 interface HeaderProps {
@@ -9,6 +9,7 @@ interface HeaderProps {
   dateRange: { start: string; end: string };
   onDateChange: (range: { start: string; end: string }) => void;
   onNewOrder: () => void;
+  onOpenSync: () => void;
   title?: string;
   subtitle?: string;
   greeting?: string;
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleHide, 
   dateRange, 
   onDateChange, 
+  onOpenSync,
   title = 'Dashboard',
   subtitle = 'Gestão de Gráfica Rápida',
   greeting = 'Olá, Bem-vindo!',
@@ -51,8 +53,16 @@ export const Header: React.FC<HeaderProps> = ({
             )}
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-lg" title="Seus dados estão seguros neste navegador (IndexedDB)">
               <Database className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Local-Safe</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">Local</span>
             </div>
+            <button 
+              onClick={onOpenSync}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors group" 
+              title="Sincronizar entre computadores"
+            >
+              <Cloud className="w-3.5 h-3.5 group-hover:animate-bounce" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Nuvem Sync</span>
+            </button>
           </div>
           <div className="flex flex-col">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">{subtitle}</p>

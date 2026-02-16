@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { QuickStats } from './components/QuickStats';
 import { ActionBanner } from './components/ActionBanner';
@@ -23,6 +23,7 @@ import { NewCustomerModal } from './components/NewCustomerModal';
 import { NewSupplyModal } from './components/NewSupplyModal';
 import { PdfPrintView } from './components/PdfPrintView';
 import { OrderDetailView } from './components/OrderDetailView';
+import { SyncTool } from './components/SyncTool';
 import { FinancialStats, BankAccount, ViewType, Product, Order, Expense, Customer, CompanySettings, Carrier, Supply } from './types';
 import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History, Layers, Loader2 } from 'lucide-react';
 import { db } from './db';
@@ -54,82 +55,7 @@ const INITIAL_COMPANY: CompanySettings = {
   expenseCategories: ['Fornecedor', 'Aluguel', 'Luz/Água', 'Marketing', 'Manutenção', 'Salários', 'Impostos', 'Outros']
 };
 
-const INITIAL_PRODUCTS: Product[] = [
-  { id: 'p1', name: 'Adesivo Fotográfico A4', category: 'Impressão', price: 7.00, costPrice: 1.90, stock: 0, status: 'Disponível' },
-  { id: 'p2', name: 'Adesivo Fotográfico A4 - Atacado', category: 'Impressão', price: 5.50, costPrice: 1.90, stock: 0, status: 'Disponível' },
-  { id: 'p3', name: 'Adesivo Marmitex 220gr', category: 'Impressão', price: 0.90, costPrice: 0.51, stock: 0, status: 'Disponível' },
-  { id: 'p4', name: 'Adesivo Vinil - 1 - 3x1,5cm + meio corte', category: 'Adesivos', price: 0.25, costPrice: 0.10, stock: 0, status: 'Disponível' },
-  { id: 'p5', name: 'Adesivo Vinil - 2 - 4x2cm + meio corte', category: 'Adesivos', price: 0.35, costPrice: 0.10, stock: 0, status: 'Disponível' },
-  { id: 'p6', name: 'Adesivo Vinil - 3 - 6,5x3,5cm + meio corte', category: 'Adesivos', price: 0.50, costPrice: 0.15, stock: 0, status: 'Disponível' },
-  { id: 'p7', name: 'Adesivo Vinil - 4 - 7x3cm + meio corte', category: 'Adesivos', price: 0.65, costPrice: 0.15, stock: 0, status: 'Disponível' },
-  { id: 'p8', name: 'Adesivo Vinil - 5 - 8,8x5,8cm + meio corte', category: 'Adesivos', price: 0.70, costPrice: 0.15, stock: 0, status: 'Disponível' },
-  { id: 'p9', name: 'Adesivo Vinil - 6 - 10x7cm + meio corte', category: 'Adesivos', price: 1.97, costPrice: 0.51, stock: 0, status: 'Disponível' },
-  { id: 'p10', name: 'Adesivo Vinil - 7 - 20x10+ meio corte', category: 'Adesivos', price: 10.00, costPrice: 1.90, stock: 0, status: 'Disponível' },
-  { id: 'p11', name: 'Adesivo Vinil - Metro 60cm', category: 'Impressão', price: 95.00, costPrice: 36.00, stock: 0, status: 'Disponível' },
-  { id: 'p12', name: 'Agenda 2025 - A5 - 2DPP - Promoção', category: 'Impressão', price: 50.00, costPrice: 26.00, stock: 0, status: 'Disponível' },
-  { id: 'p13', name: 'Agenda 2026 - A5 - 2DPP', category: 'Impressão', price: 60.00, costPrice: 26.00, stock: 0, status: 'Disponível' },
-  { id: 'p14', name: 'Agenda Escolar A6', category: 'Impressão', price: 30.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p15', name: 'Bandeirola até 10 letras', category: 'Personalizados', price: 25.00, costPrice: 10.24, stock: 0, status: 'Disponível' },
-  { id: 'p16', name: 'Banner 60x90 - Com bastão e cordão', category: 'Impressão', price: 115.00, costPrice: 60.00, stock: 0, status: 'Disponível' },
-  { id: 'p17', name: 'Bloco A5 - 1 via papel 75g', category: 'Impressão', price: 14.00, costPrice: 5.70, stock: 0, status: 'Disponível' },
-  { id: 'p18', name: 'Bloco A6 - 1 via - 10 un.', category: 'Impressão', price: 110.00, costPrice: 41.00, stock: 0, status: 'Disponível' },
-  { id: 'p19', name: 'Bloco A6 - 1 via - 20 un.', category: 'Impressão', price: 180.00, costPrice: 82.00, stock: 0, status: 'Disponível' },
-  { id: 'p20', name: 'Bloco de comanda Garçon - 7,5x11 2 vias + Carbono', category: 'Impressão', price: 4.50, costPrice: 2.40, stock: 0, status: 'Disponível' },
-  { id: 'p21', name: 'Bloco10x14 - 100 Folhas - Wire-o - Capa 180', category: 'Impressão', price: 7.60, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p22', name: 'Bloco10x14 - 50 Folhas - Wire-o - Capa 180', category: 'Impressão', price: 5.60, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p23', name: 'Bombonieri', category: 'Impressão', price: 13.90, costPrice: 5.46, stock: 0, status: 'Disponível' },
-  { id: 'p24', name: 'Caderneta de Vacinação - 15x21 - Espiral - Promoção', category: 'Personalizados', price: 50.00, costPrice: 23.00, stock: 0, status: 'Disponível' },
-  { id: 'p25', name: 'Caderno Escolar A5 - Brochura', category: 'Impressão', price: 30.00, costPrice: 10.97, stock: 0, status: 'Disponível' },
-  { id: 'p26', name: 'Caderno Escolar A5 - Wire-o', category: 'Impressão', price: 45.00, costPrice: 16.35, stock: 0, status: 'Disponível' },
-  { id: 'p27', name: 'Caderno Escolar Universitário - Brochura', category: 'Impressão', price: 45.00, costPrice: 25.00, stock: 0, status: 'Disponível' },
-  { id: 'p28', name: 'Caderno Espiral - 25x18', category: 'Impressão', price: 80.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p29', name: 'Caixa Granada Exército', category: 'Impressão', price: 6.00, costPrice: 2.50, stock: 0, status: 'Disponível' },
-  { id: 'p30', name: 'Caixa Kit Lanche', category: 'Impressão', price: 17.60, costPrice: 9.82, stock: 0, status: 'Disponível' },
-  { id: 'p31', name: 'Caixa Milk Básica', category: 'Personalizados', price: 4.20, costPrice: 1.58, stock: 0, status: 'Disponível' },
-  { id: 'p32', name: 'Caixa Milk Semi-Luxo', category: 'Personalizados', price: 4.70, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p33', name: 'Caixa Mochila do Exército', category: 'Impressão', price: 6.00, costPrice: 2.50, stock: 0, status: 'Disponível' },
-  { id: 'p34', name: 'Caixa Personalizada', category: 'Impressão', price: 4.70, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p35', name: 'Caixa Regador', category: 'Personalizados', price: 8.00, costPrice: 3.00, stock: 0, status: 'Disponível' },
-  { id: 'p36', name: 'Caixa Roda Gigante', category: 'Personalizados', price: 8.00, costPrice: 3.00, stock: 0, status: 'Disponível' },
-  { id: 'p37', name: 'Caneca', category: 'Impressão', price: 50.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p38', name: 'Cardápio A4 -Plastificado 8 pág. Frente e Verso', category: 'Impressão', price: 28.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p39', name: 'Cartão de Visita - 4x1 - 250g Verniz Frente - 1000 Un.', category: 'Impressão', price: 110.00, costPrice: 64.87, stock: 0, status: 'Disponível' },
-  { id: 'p40', name: 'Cartão de Visita - 4x4 - 250g Verniz Frente - 1000 Un.', category: 'Impressão', price: 125.00, costPrice: 72.69, stock: 0, status: 'Disponível' },
-  { id: 'p41', name: 'Centro de Mesa Sextavado', category: 'Personalizados', price: 8.00, costPrice: 4.73, stock: 0, status: 'Disponível' },
-  { id: 'p42', name: 'Chaveiro de Acrílico 3x4', category: 'Personalizados', price: 10.00, costPrice: 3.65, stock: 0, status: 'Disponível' },
-  { id: 'p43', name: 'Chaveiro Fio de Malha com tag', category: 'Impressão', price: 10.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p44', name: 'Diario de Oração', category: 'Impressão', price: 50.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p45', name: 'Display de Mesa', category: 'Personalizados', price: 8.00, costPrice: 2.50, stock: 0, status: 'Disponível' },
-  { id: 'p46', name: 'Encadernação até 150 folhas', category: 'Encadernação', price: 10.00, costPrice: 2.00, stock: 0, status: 'Disponível' },
-  { id: 'p47', name: 'Esfera de Natal - Bolinha Avulsa', category: 'Impressão', price: 6.00, costPrice: 2.00, stock: 0, status: 'Disponível' },
-  { id: 'p48', name: 'Etiquetas Escolares Kit 1 - 43 un.', category: 'Adesivos', price: 25.00, costPrice: 4.93, stock: 0, status: 'Disponível' },
-  { id: 'p49', name: 'Etiquetas Escolares Kit 2 - 86 un.', category: 'Adesivos', price: 35.00, costPrice: 6.81, stock: 0, status: 'Disponível' },
-  { id: 'p50', name: 'Etiquetas Escolares Kit 3 - 120 un.', category: 'Adesivos', price: 45.00, costPrice: 8.95, stock: 0, status: 'Disponível' },
-  { id: 'p51', name: 'Kit Agenda + Caderno', category: 'Impressão', price: 90.00, costPrice: 45.00, stock: 0, status: 'Disponível' },
-  { id: 'p52', name: 'Kit Esfera de Natal - Bolinha', category: 'Impressão', price: 18.00, costPrice: 6.00, stock: 0, status: 'Disponível' },
-  { id: 'p53', name: 'Kit M Festa na Mesa', category: 'Impressão', price: 106.25, costPrice: 25.00, stock: 0, status: 'Disponível' },
-  { id: 'p54', name: 'Kit P Festa na Mesa', category: 'Impressão', price: 60.00, costPrice: 20.00, stock: 0, status: 'Disponível' },
-  { id: 'p55', name: 'Kit pegue e monte 30 peças', category: 'Impressão', price: 90.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p56', name: 'Mini Caderno A6', category: 'Impressão', price: 18.00, costPrice: 6.00, stock: 0, status: 'Disponível' },
-  { id: 'p57', name: 'Nossa Senhora de Vidro tam. 30cm', category: 'Personalizados', price: 15.00, costPrice: 6.65, stock: 0, status: 'Disponível' },
-  { id: 'p58', name: 'Painel 60x40', category: 'Personalizados', price: 60.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p59', name: 'Planner Mensal', category: 'Impressão', price: 50.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p60', name: 'Planner Semanal', category: 'Impressão', price: 50.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p61', name: 'Porta Bis', category: 'Impressão', price: 2.70, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p62', name: 'Quadro de Parede A4', category: 'Personalizados', price: 8.00, costPrice: 1.78, stock: 0, status: 'Disponível' },
-  { id: 'p63', name: 'Quadro infantil ilustrado 21x28cm em papel 180g', category: 'Impressão', price: 7.25, costPrice: 2.35, stock: 0, status: 'Disponível' },
-  { id: 'p64', name: 'Sacola Personalizada 15x20,5x5', category: 'Personalizados', price: 7.00, costPrice: 2.50, stock: 0, status: 'Disponível' },
-  { id: 'p65', name: 'Saquinho de Suspiro', category: 'Impressão', price: 7.15, costPrice: 2.30, stock: 0, status: 'Disponível' },
-  { id: 'p66', name: 'Serviço de Corte e Vinco A4 - Colaborador', category: 'Outros', price: 1.30, costPrice: 0.80, stock: 0, status: 'Disponível' },
-  { id: 'p67', name: 'Tag 10x7 - Papel 180g - 450 un.', category: 'Impressão', price: 98.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p68', name: 'Tag para Canetas 18x5,5', category: 'Personalizados', price: 0.85, costPrice: 0.32, stock: 0, status: 'Disponível' },
-  { id: 'p69', name: 'Tobolata 7x10 cm', category: 'Personalizados', price: 11.00, costPrice: 4.40, stock: 0, status: 'Disponível' },
-  { id: 'p70', name: 'Topo de bolo Simples', category: 'Personalizados', price: 15.00, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p71', name: 'Topper de Docinho 35x35cm com palito', category: 'Impressão', price: 0.90, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p72', name: 'Topper para Cupcake - 4x4cm com palito', category: 'Impressão', price: 0.98, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p73', name: 'Tubete 13cm', category: 'Personalizados', price: 2.70, costPrice: 0.00, stock: 0, status: 'Disponível' },
-  { id: 'p74', name: 'Vela Aromatizada', category: 'Personalizados', price: 19.00, costPrice: 8.80, stock: 0, status: 'Disponível' }
-];
+const INITIAL_PRODUCTS: Product[] = []; // Removido para carregar apenas se vazio
 
 const getLocalDateString = (date: Date = new Date()): string => {
   const pad = (num: number) => (num < 10 ? '0' : '') + num;
@@ -152,6 +78,8 @@ const getRecurrenceDate = (dateStr: string, frequency: string, index: number): s
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
   const [activeView, setActiveView] = useState<ViewType>('producao');
   const [hideValues, setHideValues] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -161,7 +89,7 @@ export default function App() {
   const lastDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   
   const [dateRange, setDateRange] = useState({ start: firstDay, end: lastDay });
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [accounts, setAccounts] = useState<BankAccount[]>(INITIAL_ACCOUNTS);
@@ -170,12 +98,16 @@ export default function App() {
   const [companySettings, setCompanySettings] = useState<CompanySettings>(INITIAL_COMPANY);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
 
+  // Ref para evitar ciclos de salvamento durante o carregamento
+  const loadingRef = useRef(true);
+
   // Carregamento Inicial do IndexedDB
   useEffect(() => {
     async function initDB() {
       try {
         const savedData = await db.load('fullState');
         if (savedData) {
+          // Atualiza estados apenas se houver dados salvos
           if (savedData.products) setProducts(savedData.products);
           if (savedData.orders) setOrders(savedData.orders);
           if (savedData.expenses) setExpenses(savedData.expenses);
@@ -189,17 +121,19 @@ export default function App() {
           if (savedData.hideValues !== undefined) setHideValues(savedData.hideValues);
         }
       } catch (err) {
-        console.error("Erro ao carregar banco de dados:", err);
+        console.error("Erro ao carregar banco de dados local:", err);
       } finally {
+        loadingRef.current = false;
+        setIsInitialized(true);
         setIsLoading(false);
       }
     }
     initDB();
   }, []);
 
-  // Salvamento Automático Debounced no IndexedDB
+  // Salvamento Automático Debounced no IndexedDB - Apenas APÓS inicialização
   useEffect(() => { 
-    if (isLoading) return; // Não salvar enquanto carrega
+    if (!isInitialized || loadingRef.current) return;
     
     const timer = setTimeout(async () => {
       try {
@@ -211,12 +145,12 @@ export default function App() {
         await db.save('fullState', stateToSave);
         setLastSaved(new Date());
       } catch (e) {
-        console.error("Erro ao salvar dados no IndexedDB:", e);
+        console.error("Falha no auto-salvamento:", e);
       }
-    }, 500); // Debounce de 500ms para evitar escritas excessivas
+    }, 1000); // Aumentado para 1s para garantir estabilidade
 
     return () => clearTimeout(timer);
-  }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues, isLoading]);
+  }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues, isInitialized]);
 
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
@@ -246,29 +180,24 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportData = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target?.result as string);
-        if (data.products) setProducts(data.products);
-        if (data.orders) setOrders(data.orders);
-        if (data.expenses) setExpenses(data.expenses);
-        if (data.accounts) setAccounts(data.accounts);
-        if (data.customers) setCustomers(data.customers);
-        if (data.supplies) setSupplies(data.supplies);
-        if (data.companySettings) setCompanySettings(data.companySettings);
-        if (data.carriers) setCarriers(data.carriers);
-        alert('Backup restaurado com sucesso!');
-      } catch (error) {
-        alert('Erro ao processar arquivo de backup.');
-      }
-    };
-    reader.readAsText(file);
+  const handleImportData = (data: any) => {
+    try {
+      if (data.products) setProducts(data.products);
+      if (data.orders) setOrders(data.orders);
+      if (data.expenses) setExpenses(data.expenses);
+      if (data.accounts) setAccounts(data.accounts);
+      if (data.customers) setCustomers(data.customers);
+      if (data.supplies) setSupplies(data.supplies);
+      if (data.companySettings) setCompanySettings(data.companySettings);
+      if (data.carriers) setCarriers(data.carriers);
+      alert('Dados restaurados com sucesso! O sistema foi atualizado.');
+    } catch (error) {
+      alert('Erro ao processar dados de restauração.');
+    }
   };
 
   const handleClearData = (type: 'orders' | 'financeiro' | 'all') => {
-    if (!window.confirm('Atenção: Esta ação é irreversível. Deseja realmente excluir os dados selecionados?')) return;
+    if (!window.confirm('Atenção: Esta ação é irreversível e os dados serão removidos deste dispositivo. Deseja continuar?')) return;
     if (type === 'orders') {
       setOrders([]);
     } else if (type === 'financeiro') {
@@ -433,8 +362,8 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
         <div className="text-center">
-          <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">Carregando Sistema</p>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Personalizados FEITO A MÃO</p>
+          <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">Sincronizando Banco de Dados</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Carregando informações locais...</p>
         </div>
       </div>
     );
@@ -449,7 +378,19 @@ export default function App() {
           <OrderDetailView order={viewingOrder} company={companySettings} onBack={() => setViewingOrder(null)} onSettle={() => handleSettleOrder(viewingOrder.id)} onPrint={() => setIsPrinting(true)} />
         ) : (
           <>
-            <Header hideValues={hideValues} onToggleHide={() => setHideValues(!hideValues)} dateRange={dateRange} onDateChange={setDateRange} onNewOrder={() => setIsNewOrderModalOpen(true)} title={companySettings.dashboardTitle} subtitle={companySettings.dashboardSubtitle} greeting={companySettings.dashboardGreeting} lastSaved={lastSaved} showHideButton={activeView === 'financeiro'} />
+            <Header 
+              hideValues={hideValues} 
+              onToggleHide={() => setHideValues(!hideValues)} 
+              dateRange={dateRange} 
+              onDateChange={setDateRange} 
+              onNewOrder={() => setIsNewOrderModalOpen(true)} 
+              onOpenSync={() => setIsSyncModalOpen(true)}
+              title={companySettings.dashboardTitle} 
+              subtitle={companySettings.dashboardSubtitle} 
+              greeting={companySettings.dashboardGreeting} 
+              lastSaved={lastSaved} 
+              showHideButton={activeView === 'financeiro'} 
+            />
             <div className="mt-8 flex flex-wrap gap-1 p-1 bg-slate-200/50 rounded-xl w-fit">
               {tabs.map((tab) => (
                 <button key={tab.id} onClick={() => setActiveView(tab.id)} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeView === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
@@ -477,9 +418,14 @@ export default function App() {
               {activeView === 'historico' && <HistoryGrid orders={filteredOrdersForPeriod} onViewOrder={setViewingOrder} />}
               {activeView === 'clientes' && <CustomersGrid customers={customers} onNewCustomer={() => setIsNewCustomerModalOpen(true)} onEditCustomer={(c) => { setCustomerToEdit(c); setIsNewCustomerModalOpen(true); }} onDeleteCustomer={(id) => setCustomers(prev => prev.filter(c => c.id !== id))} />}
               {activeView === 'produtos' && <ProductsGrid products={products} onNewProduct={() => setIsNewProductModalOpen(true)} onEditProduct={(p) => { setProductToEdit(p); setIsNewProductModalOpen(true); }} onDeleteProduct={(id) => setProducts(prev => prev.filter(p => p.id !== id))} />}
-              {activeView === 'configuracoes' && <SettingsGrid settings={companySettings} carriers={carriers} onSaveSettings={setCompanySettings} onSaveCarriers={setCarriers} onExport={handleExportData} onImport={handleImportData} onClearData={handleClearData} currentFullData={{ products, orders, expenses, accounts, customers, supplies, companySettings, carriers }} />}
-            </>
-          )}
+              {activeView === 'configuracoes' && <SettingsGrid settings={companySettings} carriers={carriers} onSaveSettings={setCompanySettings} onSaveCarriers={setCarriers} onExport={handleExportData} onImport={(file) => {
+                const reader = new FileReader();
+                reader.onload = (e) => handleImportData(JSON.parse(e.target?.result as string));
+                reader.readAsText(file);
+              }} onClearData={handleClearData} currentFullData={{ products, orders, expenses, accounts, customers, supplies, companySettings, carriers }} />}
+            </div>
+          </>
+        )}
       </div>
       <NewOrderModal isOpen={isNewOrderModalOpen} orderToEdit={orderToEdit} onClose={() => {setIsNewOrderModalOpen(false); setOrderToEdit(null);}} onSave={handleSaveOrder} customers={customers} products={products} accounts={accounts} carriers={carriers} />
       <NewProductModal isOpen={isNewProductModalOpen} productToEdit={productToEdit} onClose={() => { setIsNewProductModalOpen(false); setProductToEdit(null); }} onSave={handleSaveProduct} configuredMaterials={companySettings.materials} configuredCategories={companySettings.categories} />
@@ -488,6 +434,12 @@ export default function App() {
       <NewAccountModal isOpen={isNewAccountModalOpen} onClose={() => setIsNewAccountModalOpen(false)} onSave={(acc) => setAccounts(prev => [...prev, { id: Math.random().toString(36).substr(2, 9), ...acc }])} />
       <TransferModal isOpen={isTransferModalOpen} onClose={() => setIsTransferModalOpen(false)} accounts={accounts} onTransfer={(fromId, toId, amount) => setAccounts(prev => prev.map(acc => acc.id === fromId ? { ...acc, balance: acc.balance - amount } : acc.id === toId ? { ...acc, balance: acc.balance + amount } : acc))} />
       <NewTransactionModal isOpen={isNewTransactionModalOpen} expenseToEdit={expenseToEdit} onClose={() => {setIsNewTransactionModalOpen(false); setExpenseToEdit(null);}} accounts={accounts} products={products} expenseCategories={companySettings.expenseCategories} onSave={handleSaveTransaction} />
+      <SyncTool 
+        isOpen={isSyncModalOpen} 
+        onClose={() => setIsSyncModalOpen(false)} 
+        onImport={handleImportData}
+        currentData={{ products, orders, expenses, accounts, customers, supplies, companySettings, carriers }}
+      />
     </div>
   );
 }
