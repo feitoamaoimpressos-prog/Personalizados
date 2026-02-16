@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, CheckCircle2, Database, Cloud, CloudOff } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, Database, Cloud, CloudOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { DateRangePicker } from './DateRangePicker';
 
 interface HeaderProps {
@@ -14,7 +14,7 @@ interface HeaderProps {
   subtitle?: string;
   greeting?: string;
   lastSaved?: Date | null;
-  isCloudActive?: boolean;
+  syncStatus?: 'synced' | 'syncing' | 'error' | 'idle';
   showHideButton: boolean;
 }
 
@@ -28,7 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle = 'Gestão de Gráfica Rápida',
   greeting = 'Olá, Bem-vindo!',
   lastSaved,
-  isCloudActive = false,
+  syncStatus = 'idle',
   showHideButton
 }) => {
   const [showSavedStatus, setShowSavedStatus] = useState(false);
@@ -40,6 +40,33 @@ export const Header: React.FC<HeaderProps> = ({
       return () => clearTimeout(timer);
     }
   }, [lastSaved]);
+
+  const getSyncIcon = () => {
+    switch (syncStatus) {
+      case 'syncing': return <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-500" />;
+      case 'synced': return <Cloud className="w-3.5 h-3.5 text-emerald-500" />;
+      case 'error': return <AlertCircle className="w-3.5 h-3.5 text-rose-500" />;
+      default: return <CloudOff className="w-3.5 h-3.5 text-slate-400" />;
+    }
+  };
+
+  const getSyncLabel = () => {
+    switch (syncStatus) {
+      case 'syncing': return 'Sincronizando...';
+      case 'synced': return 'Nuvem Ativa';
+      case 'error': return 'Erro de Sync';
+      default: return 'Ativar Nuvem';
+    }
+  };
+
+  const getSyncBg = () => {
+    switch (syncStatus) {
+      case 'syncing': return 'bg-amber-50 text-amber-600 border border-amber-100';
+      case 'synced': return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
+      case 'error': return 'bg-rose-50 text-rose-600 border border-rose-100';
+      default: return 'bg-slate-100 text-slate-500 border border-slate-200';
+    }
+  };
 
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -53,17 +80,18 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-[9px] font-black uppercase tracking-widest">Salvo</span>
               </div>
             )}
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-lg" title="Seus dados estão seguros neste navegador (IndexedDB)">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-lg border border-blue-100" title="Banco de dados local operando via navegador">
               <Database className="w-3.5 h-3.5" />
               <span className="text-[9px] font-black uppercase tracking-widest">Local</span>
             </div>
+            
             <button 
               onClick={onOpenSync}
-              className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg transition-colors group ${isCloudActive ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`} 
-              title="Sincronizar entre computadores"
+              className={`flex items-center gap-2 px-2.5 py-0.5 rounded-lg transition-all active:scale-95 group ${getSyncBg()}`}
+              title="Clique para gerenciar a sincronização entre dispositivos"
             >
-              {isCloudActive ? <Cloud className="w-3.5 h-3.5 animate-pulse" /> : <CloudOff className="w-3.5 h-3.5" />}
-              <span className="text-[9px] font-black uppercase tracking-widest">{isCloudActive ? 'Nuvem OK' : 'Ativar Nuvem'}</span>
+              {getSyncIcon()}
+              <span className="text-[9px] font-black uppercase tracking-widest">{getSyncLabel()}</span>
             </button>
           </div>
           <div className="flex flex-col">

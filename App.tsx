@@ -83,10 +83,11 @@ export default function App() {
   const [hideValues, setHideValues] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   
-  // Controle de Sincronização
-  const [syncKey, setSyncKey] = useState<string | null>(null);
-  const [lastCloudSync, setLastCloudSync] = useState<number>(0);
-  const isSyncingRef = useRef(false); // Bloqueia uploads enquanto processa downloads
+  // Controle de Sincronização Automática
+  const [syncKey, setSyncKey] = useState<string | null>(localStorage.getItem('cloud_sync_key'));
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error' | 'idle'>(syncKey ? 'synced' : 'idle');
+  const [lastCloudSync, setLastCloudSync] = useState<number>(Number(localStorage.getItem('cloud_last_ts')) || 0);
+  const isSyncingRef = useRef(false);
 
   const now = new Date();
   const firstDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -102,7 +103,7 @@ export default function App() {
   const [companySettings, setCompanySettings] = useState<CompanySettings>(INITIAL_COMPANY);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
 
-  // 1. Carregamento Inicial do Banco Local
+  // 1. Carregamento Inicial
   useEffect(() => {
     async function initDB() {
       try {
@@ -120,7 +121,12 @@ export default function App() {
           if (savedData.activeView) setActiveView(savedData.activeView);
           if (savedData.dateRange) setDateRange(savedData.dateRange);
           if (savedData.hideValues !== undefined) setHideValues(savedData.hideValues);
-          if (savedData.syncKey) setSyncKey(savedData.syncKey);
+          
+          // Se carregou do DB mas não tinha no localStorage, atualiza
+          if (savedData.syncKey && !syncKey) {
+            setSyncKey(savedData.syncKey);
+            localStorage.setItem('cloud_sync_key', savedData.syncKey);
+          }
           if (savedData.lastCloudSync) setLastCloudSync(savedData.lastCloudSync);
           
           setTimeout(() => { isSyncingRef.current = false; }, 1000);
@@ -135,7 +141,43 @@ export default function App() {
     initDB();
   }, []);
 
-  // 2. Salvamento Local e Upload para Nuvem (Debounced)
+  // 2. Lógica de Download Automático (Ao focar na janela ou periodicamente)
+  const checkForUpdates = async () => {
+    if (!syncKey || !isInitialized || isSyncingRef.current) return;
+    
+    setSyncStatus('syncing');
+    try {
+      const cloudData = await syncService.download(syncKey);
+      if (cloudData && cloudData.timestamp > lastCloudSync + 1000) {
+        handleImportData(cloudData.data, false);
+        setLastCloudSync(cloudData.timestamp);
+        localStorage.setItem('cloud_last_ts', cloudData.timestamp.toString());
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('synced');
+      }
+    } catch (e) {
+      setSyncStatus('error');
+    }
+  };
+
+  useEffect(() => {
+    if (!syncKey || !isInitialized) return;
+
+    // Verifica ao carregar e focar
+    checkForUpdates();
+    window.addEventListener('focus', checkForUpdates);
+    
+    // Batimento (Heartbeat) a cada 45s
+    const interval = setInterval(checkForUpdates, 45000);
+
+    return () => {
+      window.removeEventListener('focus', checkForUpdates);
+      clearInterval(interval);
+    };
+  }, [syncKey, isInitialized, lastCloudSync]);
+
+  // 3. Salvamento Local e Upload Automático (Ao Mudar Dados)
   useEffect(() => { 
     if (!isInitialized || isSyncingRef.current) return;
     
@@ -147,43 +189,54 @@ export default function App() {
           dateRange, hideValues, syncKey, lastCloudSync
         };
         
-        // Salva localmente sempre
         await db.save('fullState', stateToSave);
         setLastSaved(new Date());
 
-        // Se a nuvem estiver ativa e não estivermos baixando dados, sobe as alterações
         if (syncKey && !isSyncingRef.current) {
+          setSyncStatus('syncing');
           const success = await syncService.upload(syncKey, stateToSave);
           if (success) {
-            setLastCloudSync(Date.now());
+            const newTs = Date.now();
+            setLastCloudSync(newTs);
+            localStorage.setItem('cloud_last_ts', newTs.toString());
+            setSyncStatus('synced');
+          } else {
+            setSyncStatus('error');
           }
         }
       } catch (e) {
         console.error("Falha no auto-save:", e);
       }
-    }, 2000); 
+    }, 1500); 
 
     return () => clearTimeout(timer);
   }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues, syncKey, isInitialized]);
 
-  // 3. Polling de Download (Verifica se outros computadores mudaram algo)
-  useEffect(() => {
-    if (!syncKey || !isInitialized) return;
-
-    const interval = setInterval(async () => {
-      if (isSyncingRef.current) return;
-
-      const cloudData = await syncService.download(syncKey);
-      // Se a nuvem tem um timestamp maior que o nosso último sync registrado
-      if (cloudData && cloudData.timestamp > lastCloudSync + 1000) {
-        console.log("Detectada atualização remota...");
-        handleImportData(cloudData.data, false); // Importa sem disparar novo upload
-        setLastCloudSync(cloudData.timestamp);
+  const handleImportData = (data: any, shouldUploadAfter: boolean = true) => {
+    if (!data) return;
+    try {
+      isSyncingRef.current = true;
+      if (data.products) setProducts(data.products);
+      if (data.orders) setOrders(data.orders);
+      if (data.expenses) setExpenses(data.expenses);
+      if (data.accounts) setAccounts(data.accounts);
+      if (data.customers) setCustomers(data.customers);
+      if (data.supplies) setSupplies(data.supplies);
+      if (data.companySettings) setCompanySettings(data.companySettings);
+      if (data.carriers) setCarriers(data.carriers);
+      if (data.syncKey) {
+        setSyncKey(data.syncKey);
+        localStorage.setItem('cloud_sync_key', data.syncKey);
       }
-    }, 30000); // 30 segundos é um bom equilíbrio
-
-    return () => clearInterval(interval);
-  }, [syncKey, lastCloudSync, isInitialized]);
+      
+      setTimeout(() => {
+        isSyncingRef.current = false;
+      }, 2000);
+    } catch (error) {
+      console.error('Erro na importação:', error);
+      isSyncingRef.current = false;
+    }
+  };
 
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
@@ -213,34 +266,6 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportData = (data: any, shouldUploadAfter: boolean = true) => {
-    if (!data) return;
-    try {
-      isSyncingRef.current = true; // Bloqueia upload imediato
-      if (data.products) setProducts(data.products);
-      if (data.orders) setOrders(data.orders);
-      if (data.expenses) setExpenses(data.expenses);
-      if (data.accounts) setAccounts(data.accounts);
-      if (data.customers) setCustomers(data.customers);
-      if (data.supplies) setSupplies(data.supplies);
-      if (data.companySettings) setCompanySettings(data.companySettings);
-      if (data.carriers) setCarriers(data.carriers);
-      if (data.syncKey) setSyncKey(data.syncKey);
-      
-      // Libera após o React renderizar tudo
-      setTimeout(() => {
-        isSyncingRef.current = !shouldUploadAfter; 
-        if (!shouldUploadAfter) {
-          // Se não deve subir, aguarda mais um pouco para garantir que mudanças de estado não disparem useEffect
-          setTimeout(() => { isSyncingRef.current = false; }, 2000);
-        }
-      }, 500);
-    } catch (error) {
-      console.error('Erro na importação:', error);
-      isSyncingRef.current = false;
-    }
-  };
-
   const handleClearData = (type: 'orders' | 'financeiro' | 'all') => {
     if (!window.confirm('Atenção: Esta ação é irreversível e os dados serão removidos deste dispositivo. Deseja continuar?')) return;
     if (type === 'orders') {
@@ -250,6 +275,8 @@ export default function App() {
       setAccounts(INITIAL_ACCOUNTS);
     } else if (type === 'all') {
       indexedDB.deleteDatabase('GraficaDashboardDB');
+      localStorage.removeItem('cloud_sync_key');
+      localStorage.removeItem('cloud_last_ts');
       window.location.reload();
       return;
     }
@@ -434,7 +461,7 @@ export default function App() {
               subtitle={companySettings.dashboardSubtitle} 
               greeting={companySettings.dashboardGreeting} 
               lastSaved={lastSaved} 
-              isCloudActive={!!syncKey}
+              syncStatus={syncStatus}
               showHideButton={activeView === 'financeiro'} 
             />
             <div className="mt-8 flex flex-wrap gap-1 p-1 bg-slate-200/50 rounded-xl w-fit">
@@ -491,6 +518,8 @@ export default function App() {
         onImport={(data) => handleImportData(data, false)}
         onSetKey={(key) => {
           setSyncKey(key);
+          if (key) localStorage.setItem('cloud_sync_key', key);
+          else localStorage.removeItem('cloud_sync_key');
           setLastCloudSync(0); 
         }}
         currentData={{ products, orders, expenses, accounts, customers, supplies, companySettings, carriers }}
