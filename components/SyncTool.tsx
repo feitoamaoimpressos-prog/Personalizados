@@ -1,54 +1,54 @@
 
 import React, { useState } from 'react';
-import { X, Cloud, Copy, RefreshCw, Upload, Smartphone, Laptop, Check, AlertCircle } from 'lucide-react';
+import { X, Cloud, Copy, RefreshCw, Upload, Smartphone, Laptop, Check, AlertCircle, Key, LogOut } from 'lucide-react';
+import { syncService } from '../services/syncService';
 
 interface SyncToolProps {
   isOpen: boolean;
   onClose: () => void;
   onImport: (data: any) => void;
+  onSetKey: (key: string | null) => void;
   currentData: any;
 }
 
-export const SyncTool: React.FC<SyncToolProps> = ({ isOpen, onClose, onImport, currentData }) => {
-  const [syncCode, setSyncCode] = useState('');
-  const [generatedCode, setGeneratedCode] = useState('');
+export const SyncTool: React.FC<SyncToolProps> = ({ isOpen, onClose, onImport, onSetKey, currentData }) => {
+  const [inputKey, setInputKey] = useState('');
+  const [generatedKey, setGeneratedKey] = useState('');
   const [copied, setCopied] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const generateCode = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      try {
-        const json = JSON.stringify(currentData);
-        // Base64 robusto
-        const encoded = btoa(unescape(encodeURIComponent(json)));
-        setGeneratedCode(encoded);
-        setIsProcessing(false);
-      } catch (e) {
-        alert("Erro ao gerar código. Dados muito grandes?");
-        setIsProcessing(false);
-      }
-    }, 500);
+  const generateNewCloudKey = () => {
+    const key = syncService.generateKey();
+    setGeneratedKey(key);
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(generatedCode);
+    navigator.clipboard.writeText(generatedKey);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleImport = () => {
-    if (!syncCode.trim()) return;
-    try {
-      if (window.confirm("Isso irá substituir todos os dados deste computador pelos dados do código. Deseja continuar?")) {
-        const decoded = decodeURIComponent(escape(atob(syncCode.trim())));
-        const data = JSON.parse(decoded);
-        onImport(data);
+  const handleConnect = async () => {
+    if (!inputKey.trim()) return;
+    setIsProcessing(true);
+    
+    // Tenta baixar o dado inicial dessa chave
+    const cloudData = await syncService.download(inputKey.trim());
+    
+    if (cloudData) {
+      if (window.confirm("Chave encontrada! Deseja substituir os dados deste computador pelos dados da nuvem?")) {
+        onImport(cloudData.data);
+        onSetKey(inputKey.trim());
         onClose();
       }
-    } catch (e) {
-      alert("Código de sincronização inválido ou corrompido.");
+    } else {
+      if (window.confirm("Essa chave é nova. Deseja criar uma conta de nuvem nova e enviar seus dados atuais para lá?")) {
+        await syncService.upload(inputKey.trim(), currentData);
+        onSetKey(inputKey.trim());
+        onClose();
+      }
     }
+    setIsProcessing(false);
   };
 
   if (!isOpen) return null;
@@ -70,67 +70,67 @@ export const SyncTool: React.FC<SyncToolProps> = ({ isOpen, onClose, onImport, c
           <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-indigo-700 font-bold leading-relaxed">
-              Como este sistema roda localmente no seu navegador, seus dados não são compartilhados automaticamente entre computadores. 
-              Use esta ferramenta para mover seus dados para outro PC ou celular sem usar arquivos.
+              Use uma <strong>Chave Única</strong> para manter seus dados iguais em vários computadores. 
+              Toda vez que você salvar algo aqui, o outro computador receberá a atualização automaticamente.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Passo 1: Gerar */}
+            {/* Criar Nova */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-xs font-black text-slate-500">1</span>
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">De onde quer levar?</h3>
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Criar Nova Chave</h3>
               </div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Neste PC, gere seu código único:</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Ainda não tem uma chave?</p>
               
-              {!generatedCode ? (
+              {!generatedKey ? (
                 <button 
-                  onClick={generateCode}
-                  disabled={isProcessing}
-                  className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                  onClick={generateNewCloudKey}
+                  className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
                 >
-                  {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                  Gerar Chave de Sync
+                  <Key className="w-4 h-4" />
+                  Gerar Chave de Nuvem
                 </button>
               ) : (
-                <div className="space-y-3">
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl break-all text-[8px] font-mono max-h-24 overflow-y-auto">
-                    {generatedCode}
+                <div className="space-y-3 animate-in slide-in-from-bottom-2">
+                  <div className="p-5 bg-indigo-50 border-2 border-indigo-200 rounded-2xl text-center">
+                    <span className="text-2xl font-black tracking-[0.2em] text-indigo-600">{generatedKey}</span>
                   </div>
                   <button 
                     onClick={handleCopy}
                     className={`w-full py-3 ${copied ? 'bg-emerald-500' : 'bg-slate-800'} text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2`}
                   >
                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copied ? 'Código Copiado!' : 'Copiar Código'}
+                    {copied ? 'Copiado!' : 'Copiar e Usar'}
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Passo 2: Receber */}
+            {/* Conectar Existente */}
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-xs font-black text-slate-500">2</span>
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Para onde quer levar?</h3>
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Conectar Dispositivo</h3>
               </div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">No outro PC, cole o código gerado:</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Já tem a chave do outro PC?</p>
               
               <div className="space-y-3">
-                <textarea 
-                  placeholder="Cole aqui o código que você copiou do outro computador..."
-                  value={syncCode}
-                  onChange={(e) => setSyncCode(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/5 min-h-[96px] placeholder:text-slate-300"
+                <input 
+                  type="text"
+                  placeholder="Digite sua Chave aqui..."
+                  value={inputKey}
+                  onChange={(e) => setInputKey(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-center text-lg font-black tracking-[0.2em] text-slate-700 outline-none focus:border-indigo-500 transition-all"
                 />
                 <button 
-                  onClick={handleImport}
-                  disabled={!syncCode.trim()}
-                  className="w-full py-4 bg-white border-2 border-indigo-600 text-indigo-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:border-slate-300 disabled:text-slate-300"
+                  onClick={handleConnect}
+                  disabled={!inputKey.trim() || isProcessing}
+                  className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
                 >
-                  <Upload className="w-4 h-4" />
-                  Sincronizar Dados
+                  {isProcessing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+                  Conectar e Sincronizar
                 </button>
               </div>
             </div>
@@ -139,25 +139,40 @@ export const SyncTool: React.FC<SyncToolProps> = ({ isOpen, onClose, onImport, c
           <div className="flex justify-center gap-12 opacity-40 grayscale pt-4 border-t border-slate-50">
              <div className="flex items-center gap-2">
                <Laptop className="w-5 h-5" />
-               <span className="text-[10px] font-black uppercase">PC Casa</span>
+               <span className="text-[10px] font-black uppercase">Computador</span>
+             </div>
+             <div className="flex items-center text-indigo-600 opacity-100">
+               <RefreshCw className="w-5 h-5 animate-spin-slow" />
              </div>
              <div className="flex items-center gap-2">
                <Smartphone className="w-5 h-5" />
                <span className="text-[10px] font-black uppercase">Celular</span>
              </div>
-             <div className="flex items-center gap-2">
-               <Laptop className="w-5 h-5" />
-               <span className="text-[10px] font-black uppercase">PC Gráfica</span>
-             </div>
           </div>
         </div>
 
-        <div className="p-8 bg-slate-50 flex justify-end">
+        <div className="p-8 bg-slate-50 flex justify-between items-center">
+          <button 
+            onClick={() => { if(confirm("Deseja desativar a sincronização? Os dados locais serão mantidos, mas não haverá mais trocas.")) { onSetKey(null); onClose(); } }}
+            className="flex items-center gap-2 text-rose-500 text-[10px] font-black uppercase hover:text-rose-700 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Desativar Nuvem
+          </button>
           <button onClick={onClose} className="px-8 py-3 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-500 uppercase tracking-widest hover:bg-slate-100 transition-colors">
-            Cancelar / Voltar
+            Fechar
           </button>
         </div>
       </div>
+      <style>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 10s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };

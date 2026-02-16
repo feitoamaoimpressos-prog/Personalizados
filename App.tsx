@@ -27,6 +27,7 @@ import { SyncTool } from './components/SyncTool';
 import { FinancialStats, BankAccount, ViewType, Product, Order, Expense, Customer, CompanySettings, Carrier, Supply } from './types';
 import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History, Layers, Loader2 } from 'lucide-react';
 import { db } from './db';
+import { syncService } from './services/syncService';
 
 const INITIAL_ACCOUNTS: BankAccount[] = [
   { id: '1', name: 'Caixa Geral', type: 'Caixa', balance: 0.00 },
@@ -55,8 +56,6 @@ const INITIAL_COMPANY: CompanySettings = {
   expenseCategories: ['Fornecedor', 'Aluguel', 'Luz/Água', 'Marketing', 'Manutenção', 'Salários', 'Impostos', 'Outros']
 };
 
-const INITIAL_PRODUCTS: Product[] = []; // Removido para carregar apenas se vazio
-
 const getLocalDateString = (date: Date = new Date()): string => {
   const pad = (num: number) => (num < 10 ? '0' : '') + num;
   return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
@@ -83,6 +82,8 @@ export default function App() {
   const [activeView, setActiveView] = useState<ViewType>('producao');
   const [hideValues, setHideValues] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [lastCloudSync, setLastCloudSync] = useState<number>(0);
+  const [syncKey, setSyncKey] = useState<string | null>(null);
   
   const now = new Date();
   const firstDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -98,7 +99,6 @@ export default function App() {
   const [companySettings, setCompanySettings] = useState<CompanySettings>(INITIAL_COMPANY);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
 
-  // Ref para evitar ciclos de salvamento durante o carregamento
   const loadingRef = useRef(true);
 
   // Carregamento Inicial do IndexedDB
@@ -107,7 +107,6 @@ export default function App() {
       try {
         const savedData = await db.load('fullState');
         if (savedData) {
-          // Atualiza estados apenas se houver dados salvos
           if (savedData.products) setProducts(savedData.products);
           if (savedData.orders) setOrders(savedData.orders);
           if (savedData.expenses) setExpenses(savedData.expenses);
@@ -119,6 +118,8 @@ export default function App() {
           if (savedData.activeView) setActiveView(savedData.activeView);
           if (savedData.dateRange) setDateRange(savedData.dateRange);
           if (savedData.hideValues !== undefined) setHideValues(savedData.hideValues);
+          if (savedData.syncKey) setSyncKey(savedData.syncKey);
+          if (savedData.lastCloudSync) setLastCloudSync(savedData.lastCloudSync);
         }
       } catch (err) {
         console.error("Erro ao carregar banco de dados local:", err);
@@ -131,7 +132,7 @@ export default function App() {
     initDB();
   }, []);
 
-  // Salvamento Automático Debounced no IndexedDB - Apenas APÓS inicialização
+  // Salvamento Automático Local e Upload para Nuvem
   useEffect(() => { 
     if (!isInitialized || loadingRef.current) return;
     
@@ -140,17 +141,39 @@ export default function App() {
         const stateToSave = { 
           products, orders, expenses, accounts, customers, 
           supplies, companySettings, carriers, activeView, 
-          dateRange, hideValues 
+          dateRange, hideValues, syncKey, lastCloudSync
         };
         await db.save('fullState', stateToSave);
         setLastSaved(new Date());
+
+        // Se a sincronização estiver ativa, faz upload
+        if (syncKey) {
+          const success = await syncService.upload(syncKey, stateToSave);
+          if (success) setLastCloudSync(Date.now());
+        }
       } catch (e) {
         console.error("Falha no auto-salvamento:", e);
       }
-    }, 1000); // Aumentado para 1s para garantir estabilidade
+    }, 1500); 
 
     return () => clearTimeout(timer);
-  }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues, isInitialized]);
+  }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues, syncKey, isInitialized]);
+
+  // Polling de Sincronização (Download)
+  useEffect(() => {
+    if (!syncKey || !isInitialized) return;
+
+    const interval = setInterval(async () => {
+      const cloudData = await syncService.download(syncKey);
+      if (cloudData && cloudData.timestamp > lastCloudSync) {
+        console.log("Detectadas mudanças na nuvem, atualizando...");
+        handleImportData(cloudData.data);
+        setLastCloudSync(cloudData.timestamp);
+      }
+    }, 30000); // Verifica a cada 30 segundos
+
+    return () => clearInterval(interval);
+  }, [syncKey, lastCloudSync, isInitialized]);
 
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
@@ -190,9 +213,9 @@ export default function App() {
       if (data.supplies) setSupplies(data.supplies);
       if (data.companySettings) setCompanySettings(data.companySettings);
       if (data.carriers) setCarriers(data.carriers);
-      alert('Dados restaurados com sucesso! O sistema foi atualizado.');
+      if (data.syncKey) setSyncKey(data.syncKey);
     } catch (error) {
-      alert('Erro ao processar dados de restauração.');
+      console.error('Erro ao processar dados de restauração:', error);
     }
   };
 
@@ -389,6 +412,7 @@ export default function App() {
               subtitle={companySettings.dashboardSubtitle} 
               greeting={companySettings.dashboardGreeting} 
               lastSaved={lastSaved} 
+              isCloudActive={!!syncKey}
               showHideButton={activeView === 'financeiro'} 
             />
             <div className="mt-8 flex flex-wrap gap-1 p-1 bg-slate-200/50 rounded-xl w-fit">
@@ -438,6 +462,10 @@ export default function App() {
         isOpen={isSyncModalOpen} 
         onClose={() => setIsSyncModalOpen(false)} 
         onImport={handleImportData}
+        onSetKey={(key) => {
+          setSyncKey(key);
+          setLastCloudSync(0); // Força um primeiro download
+        }}
         currentData={{ products, orders, expenses, accounts, customers, supplies, companySettings, carriers }}
       />
     </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, CheckCircle2, Database, Cloud } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, Database, Cloud, CloudOff } from 'lucide-react';
 import { DateRangePicker } from './DateRangePicker';
 
 interface HeaderProps {
@@ -14,6 +14,7 @@ interface HeaderProps {
   subtitle?: string;
   greeting?: string;
   lastSaved?: Date | null;
+  isCloudActive?: boolean;
   showHideButton: boolean;
 }
 
@@ -27,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle = 'Gestão de Gráfica Rápida',
   greeting = 'Olá, Bem-vindo!',
   lastSaved,
+  isCloudActive = false,
   showHideButton
 }) => {
   const [showSavedStatus, setShowSavedStatus] = useState(false);
@@ -57,11 +59,11 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <button 
               onClick={onOpenSync}
-              className="flex items-center gap-1.5 px-2.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors group" 
+              className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg transition-colors group ${isCloudActive ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`} 
               title="Sincronizar entre computadores"
             >
-              <Cloud className="w-3.5 h-3.5 group-hover:animate-bounce" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Nuvem Sync</span>
+              {isCloudActive ? <Cloud className="w-3.5 h-3.5 animate-pulse" /> : <CloudOff className="w-3.5 h-3.5" />}
+              <span className="text-[9px] font-black uppercase tracking-widest">{isCloudActive ? 'Nuvem OK' : 'Ativar Nuvem'}</span>
             </button>
           </div>
           <div className="flex flex-col">
