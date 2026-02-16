@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { 
   Settings, Building2, Save, FileText, Layout, Layers, Plus, Trash2, 
   Globe, Instagram, CreditCard, Landmark, Smartphone, Image as ImageIcon,
-  ShieldCheck, Upload, Download, Database, Mail, Phone, MapPin, LayoutGrid, Truck, Wrench, AlertTriangle, TrendingDown
+  ShieldCheck, Upload, Download, Database, Mail, Phone, MapPin, LayoutGrid, Truck, Wrench, AlertTriangle, TrendingDown, Copy, RefreshCw
 } from 'lucide-react';
 import { CompanySettings, Carrier } from '../types';
 
@@ -15,15 +15,17 @@ interface SettingsGridProps {
   onExport: () => void;
   onImport: (file: File) => void;
   onClearData: (type: 'orders' | 'financeiro' | 'all') => void;
+  currentFullData: any;
 }
 
-export const SettingsGrid: React.FC<SettingsGridProps> = ({ settings, carriers, onSaveSettings, onSaveCarriers, onExport, onImport, onClearData }) => {
+export const SettingsGrid: React.FC<SettingsGridProps> = ({ settings, carriers, onSaveSettings, onSaveCarriers, onExport, onImport, onClearData, currentFullData }) => {
   const [formData, setFormData] = useState<CompanySettings>(settings);
   const [carriersList, setCarriersList] = useState<Carrier[]>(carriers);
   const [newMaterial, setNewMaterial] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [newExpenseCategory, setNewExpenseCategory] = useState('');
   const [newCarrier, setNewCarrier] = useState({ name: '', type: 'Motoboy' as any });
+  const [syncCode, setSyncCode] = useState('');
   
   const backupInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -50,6 +52,31 @@ export const SettingsGrid: React.FC<SettingsGridProps> = ({ settings, carriers, 
     onSaveSettings(formData);
     onSaveCarriers(carriersList);
     alert('Todas as configurações e categorias foram salvas com sucesso!');
+  };
+
+  const generateSyncCode = () => {
+    try {
+      const json = JSON.stringify(currentFullData);
+      const encoded = btoa(unescape(encodeURIComponent(json)));
+      setSyncCode(encoded);
+    } catch (e) {
+      alert("Erro ao gerar código. Tente usar o backup em arquivo.");
+    }
+  };
+
+  const importSyncCode = () => {
+    if (!syncCode) return;
+    try {
+      const decoded = decodeURIComponent(escape(atob(syncCode)));
+      const data = JSON.parse(decoded);
+      if (confirm("Isso irá substituir todos os dados atuais. Continuar?")) {
+        const file = new File([decoded], "sync.json", { type: 'application/json' });
+        onImport(file);
+        setSyncCode('');
+      }
+    } catch (e) {
+      alert("Código de sincronização inválido.");
+    }
   };
 
   const handleAddCarrier = () => {
@@ -311,8 +338,42 @@ export const SettingsGrid: React.FC<SettingsGridProps> = ({ settings, carriers, 
         <div className="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-slate-200/50 border border-slate-100 space-y-6">
           <div className="flex items-center gap-3">
             <Wrench className="w-5 h-5 text-slate-600" />
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Manutenção de Dados</h3>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Manutenção e Sincronização</h3>
           </div>
+          
+          {/* Transferência Rápida */}
+          <div className="p-6 bg-blue-50/50 border border-blue-100 rounded-[2rem] space-y-4">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-blue-600" />
+              <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Sincronização Rápida (Sem Arquivo)</p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <textarea 
+                placeholder="Cole aqui seu código de sincronização de outra conta..."
+                value={syncCode}
+                onChange={(e) => setSyncCode(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-blue-200 rounded-2xl text-[10px] font-mono outline-none focus:ring-4 focus:ring-blue-500/10 min-h-[80px]"
+              />
+              <div className="flex gap-2">
+                <button 
+                  onClick={generateSyncCode}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all"
+                >
+                  <Copy className="w-3.5 h-3.5" /> Gerar Código
+                </button>
+                <button 
+                  onClick={importSyncCode}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-blue-300 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all"
+                >
+                  <Upload className="w-3.5 h-3.5" /> Importar Código
+                </button>
+              </div>
+              <p className="text-[8px] text-blue-400 font-bold uppercase leading-tight italic">
+                * O código de sincronização permite mover todos os seus dados entre navegadores ou computadores sem precisar de arquivos. Basta gerar o código em uma máquina e colar na outra.
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button onClick={onExport} className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl hover:bg-emerald-100 transition-all">
               <Download className="w-5 h-5 text-emerald-600" />

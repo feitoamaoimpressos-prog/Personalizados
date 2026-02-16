@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, Database } from 'lucide-react';
 import { DateRangePicker } from './DateRangePicker';
 
 interface HeaderProps {
@@ -49,6 +49,10 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-[9px] font-black uppercase tracking-widest">Salvo</span>
               </div>
             )}
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-500 rounded-lg" title="Seus dados estão seguros neste navegador (IndexedDB)">
+              <Database className="w-3.5 h-3.5" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Local-Safe</span>
+            </div>
           </div>
           <div className="flex flex-col">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">{subtitle}</p>

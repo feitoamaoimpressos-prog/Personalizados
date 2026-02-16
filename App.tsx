@@ -24,7 +24,8 @@ import { NewSupplyModal } from './components/NewSupplyModal';
 import { PdfPrintView } from './components/PdfPrintView';
 import { OrderDetailView } from './components/OrderDetailView';
 import { FinancialStats, BankAccount, ViewType, Product, Order, Expense, Customer, CompanySettings, Carrier, Supply } from './types';
-import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History, Layers } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Box, ShoppingCart, Settings, History, Layers, Loader2 } from 'lucide-react';
+import { db } from './db';
 
 const INITIAL_ACCOUNTS: BankAccount[] = [
   { id: '1', name: 'Caixa Geral', type: 'Caixa', balance: 0.00 },
@@ -130,76 +131,6 @@ const INITIAL_PRODUCTS: Product[] = [
   { id: 'p74', name: 'Vela Aromatizada', category: 'Personalizados', price: 19.00, costPrice: 8.80, stock: 0, status: 'Disponível' }
 ];
 
-const INITIAL_CUSTOMERS: Customer[] = [
-  { id: 'c1', name: 'Adaliana Souza', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c2', name: 'Adriely Balieiro Ribeiro', email: '', phone: '12 99757-9771', totalOrders: 0, status: 'Ativo' },
-  { id: 'c3', name: 'Alexandra - Emo', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c4', name: 'Amélia', email: '', phone: '12 99186-3889', totalOrders: 1, status: 'Ativo' },
-  { id: 'c5', name: 'ANDERSON LUIZ OURIVES CORREA', email: 'feitoamao.impressos@gmail.com', phone: '12 99239-1458', totalOrders: 0, status: 'Ativo' },
-  { id: 'c6', name: 'Beatriz - UTI', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c7', name: 'Beatriz Helena Ártico', email: '', phone: '12 99257-9779', totalOrders: 0, status: 'Ativo' },
-  { id: 'c8', name: 'Camila', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c9', name: 'Célia - Santa Casa Guaratinguetá', email: '', phone: '', totalOrders: 2, status: 'Ativo' },
-  { id: 'c10', name: 'Ciliane', email: '', phone: '12 99618-5065', totalOrders: 1, status: 'Ativo' },
-  { id: 'c11', name: 'Cintia', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c12', name: 'Cris - Loira UTI', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c13', name: 'Cristiane - Cris', email: '', phone: '12 99767-8032', totalOrders: 1, status: 'Ativo' },
-  { id: 'c14', name: 'Edimilson - Didi', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c15', name: 'Eliana\'s Restaurante', email: '', phone: '12 99205-3252', totalOrders: 0, status: 'Ativo' },
-  { id: 'c16', name: 'Elida - Samira', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c17', name: 'Flávia Ferreira', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c18', name: 'Gabi - Unha', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c19', name: 'Gabriela', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c20', name: 'Geovana - Cris', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c21', name: 'Gera Som', email: 'feitoamao.impressos@gmail.com', phone: '12 99619-3794', totalOrders: 0, status: 'Ativo' },
-  { id: 'c22', name: 'Gisele CC', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c23', name: 'Graça - Santa Casa', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c24', name: 'Gráfica Denis', email: '', phone: '12 99702-4365', totalOrders: 1, status: 'Ativo' },
-  { id: 'c25', name: 'Gráfica Digital Center', email: '', phone: '12 99600-2727', totalOrders: 2, status: 'Ativo' },
-  { id: 'c26', name: 'IRM SENHOR DOS PASSOS E STA CASA DE MISERICORDIA DE GUARATINGUETA', email: 'compras@santacasaguara.com.br', phone: '12 99628-3943', totalOrders: 0, status: 'Ativo' },
-  { id: 'c27', name: 'Jeferson Barbearia', email: '', phone: '12 99100-1530', totalOrders: 1, status: 'Ativo' },
-  { id: 'c28', name: 'Jéssica - Enfermeira', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c29', name: 'Jéssica - Ortopedia', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c30', name: 'Juliana - Santa Casa', email: '', phone: '', totalOrders: 4, status: 'Ativo' },
-  { id: 'c31', name: 'Letícia - Santa Casa Guará', email: '', phone: '', totalOrders: 2, status: 'Ativo' },
-  { id: 'c32', name: 'Loja Ireny', email: '', phone: '12 98142-6238', totalOrders: 0, status: 'Ativo' },
-  { id: 'c33', name: 'Loja Vitória', email: '', phone: '12 98142-6238', totalOrders: 1, status: 'Ativo' },
-  { id: 'c34', name: 'Lorraine - Santa Casa Guara', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c35', name: 'Lúcia Moraes', email: '', phone: '12 99142-7858', totalOrders: 4, status: 'Ativo' },
-  { id: 'c36', name: 'Lugui Ferramentas', email: '', phone: '12 98245-1589', totalOrders: 3, status: 'Ativo' },
-  { id: 'c37', name: 'Mais Motos', email: '', phone: '12 97409-5312', totalOrders: 1, status: 'Ativo' },
-  { id: 'c38', name: 'Mariane Bijoux', email: '', phone: '12 99738-1848', totalOrders: 1, status: 'Ativo' },
-  { id: 'c39', name: 'Marina', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c40', name: 'Michele - Enfermeira', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
-  { id: 'c41', name: 'Michele - Enfermeira Pediatria', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c42', name: 'Mônica', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
-  { id: 'c43', name: 'Natalia - PI', email: '', phone: '', totalOrders: 3, status: 'Ativo' },
-  { id: 'c44', name: 'Natália - C1', email: '', phone: '', totalOrders: 2, status: 'Ativo' },
-  { id: 'c45', name: 'Ortobom - Guaratinguetá', email: '', phone: '(12) 99239-2009', totalOrders: 0, status: 'Ativo' },
-  { id: 'c46', name: 'Paloma - C1', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c47', name: 'Paula Mariana', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
-  { id: 'c48', name: 'Pedro', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
-  { id: 'c49', name: 'Pizzaria La Bella', email: '', phone: '12 99766-0189', totalOrders: 4, status: 'Ativo' },
-  { id: 'c50', name: 'Priscila - Santa Casa Aparecida', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c51', name: 'Psicomed', email: '', phone: '12 3105-3194', totalOrders: 1, status: 'Ativo' },
-  { id: 'c52', name: 'Renata', email: '', phone: '12 99725-8925', totalOrders: 1, status: 'Ativo' },
-  { id: 'c53', name: 'Renata (Outra)', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c54', name: 'Rose - Enfermeira', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c55', name: 'Samira - Santa Casa Aparecida', email: '', phone: '', totalOrders: 2, status: 'Ativo' },
-  { id: 'c56', name: 'Santa Casa de Misericórdia de Guaratinguetá', email: '', phone: '12 2131-1900', totalOrders: 1, status: 'Ativo' },
-  { id: 'c57', name: 'Sheila - Festas', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c58', name: 'Silvia - Camila Shopping', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c59', name: 'Suelen', email: '', phone: '', totalOrders: 0, status: 'Ativo' },
-  { id: 'c60', name: 'Taisa Helena', email: '', phone: '12 99260-8262', totalOrders: 1, status: 'Ativo' },
-  { id: 'c61', name: 'Tassia - Felipe', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c62', name: 'Thais', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c63', name: 'Thais - Cinta', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c64', name: 'Thais - Enfermeira', email: '', phone: '12 99747-2680', totalOrders: 1, status: 'Ativo' },
-  { id: 'c65', name: 'Valquiria - Val', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c66', name: 'Vanessa', email: '', phone: '', totalOrders: 1, status: 'Ativo' },
-  { id: 'c67', name: 'Yane', email: '', phone: '', totalOrders: 1, status: 'Ativo' }
-];
-
 const getLocalDateString = (date: Date = new Date()): string => {
   const pad = (num: number) => (num < 10 ? '0' : '') + num;
   return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
@@ -220,85 +151,72 @@ const getRecurrenceDate = (dateStr: string, frequency: string, index: number): s
 };
 
 export default function App() {
-  const [activeView, setActiveView] = useState<ViewType>(() => (localStorage.getItem('activeView') as ViewType) || 'producao');
-  const [hideValues, setHideValues] = useState(() => localStorage.getItem('hideValues') === 'true');
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeView, setActiveView] = useState<ViewType>('producao');
+  const [hideValues, setHideValues] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   
   const now = new Date();
   const firstDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
   const lastDay = getLocalDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   
-  const [dateRange, setDateRange] = useState(() => {
-    const saved = localStorage.getItem('dateRange');
-    return saved ? JSON.parse(saved) : { start: firstDay, end: lastDay };
-  });
-  
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('products');
-    if (saved === null) return INITIAL_PRODUCTS;
-    try { return JSON.parse(saved); } catch { return INITIAL_PRODUCTS; }
-  });
+  const [dateRange, setDateRange] = useState({ start: firstDay, end: lastDay });
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [accounts, setAccounts] = useState<BankAccount[]>(INITIAL_ACCOUNTS);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [supplies, setSupplies] = useState<Supply[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings>(INITIAL_COMPANY);
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
 
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('orders');
-    if (saved === null) return [];
-    try { return JSON.parse(saved); } catch { return []; }
-  });
-
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const saved = localStorage.getItem('expenses');
-    if (saved === null) return [];
-    try { return JSON.parse(saved); } catch { return []; }
-  });
-
-  const [accounts, setAccounts] = useState<BankAccount[]>(() => {
-    const saved = localStorage.getItem('accounts');
-    if (saved === null) return INITIAL_ACCOUNTS;
-    try { return JSON.parse(saved); } catch { return INITIAL_ACCOUNTS; }
-  });
-
-  const [customers, setCustomers] = useState<Customer[]>(() => {
-    const saved = localStorage.getItem('customers');
-    if (saved === null) return INITIAL_CUSTOMERS;
-    try { return JSON.parse(saved); } catch { return INITIAL_CUSTOMERS; }
-  });
-
-  const [supplies, setSupplies] = useState<Supply[]>(() => {
-    const saved = localStorage.getItem('supplies');
-    if (saved === null) return [];
-    try { return JSON.parse(saved); } catch { return []; }
-  });
-
-  const [companySettings, setCompanySettings] = useState<CompanySettings>(() => {
-    const saved = localStorage.getItem('companySettings');
-    if (saved === null) return INITIAL_COMPANY;
-    try { return JSON.parse(saved); } catch { return INITIAL_COMPANY; }
-  });
-
-  const [carriers, setCarriers] = useState<Carrier[]>(() => {
-    const saved = localStorage.getItem('carriers');
-    if (saved === null) return [];
-    try { return JSON.parse(saved); } catch { return []; }
-  });
-
-  useEffect(() => { 
-    try {
-      localStorage.setItem('products', JSON.stringify(products)); 
-      localStorage.setItem('orders', JSON.stringify(orders));
-      localStorage.setItem('expenses', JSON.stringify(expenses));
-      localStorage.setItem('accounts', JSON.stringify(accounts));
-      localStorage.setItem('customers', JSON.stringify(customers));
-      localStorage.setItem('supplies', JSON.stringify(supplies));
-      localStorage.setItem('companySettings', JSON.stringify(companySettings));
-      localStorage.setItem('carriers', JSON.stringify(carriers));
-      localStorage.setItem('activeView', activeView);
-      localStorage.setItem('dateRange', JSON.stringify(dateRange));
-      localStorage.setItem('hideValues', String(hideValues));
-      setLastSaved(new Date());
-    } catch (e) {
-      console.error("Erro ao salvar dados localmente:", e);
+  // Carregamento Inicial do IndexedDB
+  useEffect(() => {
+    async function initDB() {
+      try {
+        const savedData = await db.load('fullState');
+        if (savedData) {
+          if (savedData.products) setProducts(savedData.products);
+          if (savedData.orders) setOrders(savedData.orders);
+          if (savedData.expenses) setExpenses(savedData.expenses);
+          if (savedData.accounts) setAccounts(savedData.accounts);
+          if (savedData.customers) setCustomers(savedData.customers);
+          if (savedData.supplies) setSupplies(savedData.supplies);
+          if (savedData.companySettings) setCompanySettings(savedData.companySettings);
+          if (savedData.carriers) setCarriers(savedData.carriers);
+          if (savedData.activeView) setActiveView(savedData.activeView);
+          if (savedData.dateRange) setDateRange(savedData.dateRange);
+          if (savedData.hideValues !== undefined) setHideValues(savedData.hideValues);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar banco de dados:", err);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues]);
+    initDB();
+  }, []);
+
+  // Salvamento Automático Debounced no IndexedDB
+  useEffect(() => { 
+    if (isLoading) return; // Não salvar enquanto carrega
+    
+    const timer = setTimeout(async () => {
+      try {
+        const stateToSave = { 
+          products, orders, expenses, accounts, customers, 
+          supplies, companySettings, carriers, activeView, 
+          dateRange, hideValues 
+        };
+        await db.save('fullState', stateToSave);
+        setLastSaved(new Date());
+      } catch (e) {
+        console.error("Erro ao salvar dados no IndexedDB:", e);
+      }
+    }, 500); // Debounce de 500ms para evitar escritas excessivas
+
+    return () => clearTimeout(timer);
+  }, [products, orders, expenses, accounts, customers, supplies, companySettings, carriers, activeView, dateRange, hideValues, isLoading]);
 
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
@@ -357,7 +275,7 @@ export default function App() {
       setExpenses([]);
       setAccounts(INITIAL_ACCOUNTS);
     } else if (type === 'all') {
-      localStorage.clear();
+      indexedDB.deleteDatabase('GraficaDashboardDB');
       window.location.reload();
       return;
     }
@@ -510,6 +428,18 @@ export default function App() {
     { id: 'configuracoes', label: 'Sistema', icon: Settings },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+        <div className="text-center">
+          <p className="text-lg font-black text-slate-800 uppercase tracking-tighter">Carregando Sistema</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Personalizados FEITO A MÃO</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-12 bg-slate-50/30 font-inter text-slate-900">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -547,10 +477,9 @@ export default function App() {
               {activeView === 'historico' && <HistoryGrid orders={filteredOrdersForPeriod} onViewOrder={setViewingOrder} />}
               {activeView === 'clientes' && <CustomersGrid customers={customers} onNewCustomer={() => setIsNewCustomerModalOpen(true)} onEditCustomer={(c) => { setCustomerToEdit(c); setIsNewCustomerModalOpen(true); }} onDeleteCustomer={(id) => setCustomers(prev => prev.filter(c => c.id !== id))} />}
               {activeView === 'produtos' && <ProductsGrid products={products} onNewProduct={() => setIsNewProductModalOpen(true)} onEditProduct={(p) => { setProductToEdit(p); setIsNewProductModalOpen(true); }} onDeleteProduct={(id) => setProducts(prev => prev.filter(p => p.id !== id))} />}
-              {activeView === 'configuracoes' && <SettingsGrid settings={companySettings} carriers={carriers} onSaveSettings={setCompanySettings} onSaveCarriers={setCarriers} onExport={handleExportData} onImport={handleImportData} onClearData={handleClearData} />}
-            </div>
-          </>
-        )}
+              {activeView === 'configuracoes' && <SettingsGrid settings={companySettings} carriers={carriers} onSaveSettings={setCompanySettings} onSaveCarriers={setCarriers} onExport={handleExportData} onImport={handleImportData} onClearData={handleClearData} currentFullData={{ products, orders, expenses, accounts, customers, supplies, companySettings, carriers }} />}
+            </>
+          )}
       </div>
       <NewOrderModal isOpen={isNewOrderModalOpen} orderToEdit={orderToEdit} onClose={() => {setIsNewOrderModalOpen(false); setOrderToEdit(null);}} onSave={handleSaveOrder} customers={customers} products={products} accounts={accounts} carriers={carriers} />
       <NewProductModal isOpen={isNewProductModalOpen} productToEdit={productToEdit} onClose={() => { setIsNewProductModalOpen(false); setProductToEdit(null); }} onSave={handleSaveProduct} configuredMaterials={companySettings.materials} configuredCategories={companySettings.categories} />
