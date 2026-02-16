@@ -6,17 +6,38 @@ export const syncService = {
     return Math.random().toString(36).substring(2, 12).toUpperCase();
   },
 
-  // Codificação segura e compacta
-  encode(data: any): string {
-    // Removemos a logo do sync de nuvem por ser muito pesada (geralmente > 100kb)
-    // Isso evita o erro 413 (Payload Too Large) que trava o pareamento
-    const dataToSync = { ...data };
-    if (dataToSync.companySettings) {
-      dataToSync.companySettings = { ...dataToSync.companySettings, logo: '' };
-    }
+  // Limpa os dados removendo propriedades de UI e imagens pesadas
+  // Isso é crucial para não exceder o limite de 64kb/100kb do servidor gratuito
+  cleanupForSync(data: any): any {
+    const clean = { ...data };
     
-    const str = JSON.stringify(dataToSync);
-    return btoa(unescape(encodeURIComponent(str)));
+    // Remove estados de interface que não pertencem ao banco de dados
+    delete clean.activeView;
+    delete clean.dateRange;
+    delete clean.hideValues;
+    delete clean.isLoading;
+    delete clean.isSyncModalOpen;
+    delete clean.syncStatus;
+
+    // Remove a Logo para o Sync (Imagens em Base64 são muito pesadas)
+    // A logo continuará salva no banco local de cada PC individualmente
+    if (clean.companySettings) {
+      clean.companySettings = { ...clean.companySettings, logo: '' };
+    }
+
+    return clean;
+  },
+
+  encode(data: any): string {
+    try {
+      const cleaned = this.cleanupForSync(data);
+      const str = JSON.stringify(cleaned);
+      // Codificação UTF-8 segura
+      return btoa(unescape(encodeURIComponent(str)));
+    } catch (e) {
+      console.error("Erro na codificação:", e);
+      return "";
+    }
   },
 
   decode(base64: string): any {
@@ -24,36 +45,50 @@ export const syncService = {
       const str = decodeURIComponent(escape(atob(base64)));
       return JSON.parse(str);
     } catch (e) {
-      console.error("Falha ao decodificar dados da nuvem", e);
+      console.error("Erro na decodificação:", e);
       return null;
     }
   },
 
-  async upload(key: string, data: any): Promise<boolean> {
+  async upload(key: string, data: any): Promise<{ success: boolean; error?: string }> {
     try {
+      const encodedData = this.encode(data);
+      
+      // Verifica tamanho aproximado (Base64 + JSON overhead)
+      if (encodedData.length > 95000) {
+        return { success: false, error: "BANCO MUITO GRANDE. Tente excluir pedidos antigos do histórico." };
+      }
+
       const payload = {
         timestamp: Date.now(),
-        data: this.encode(data),
-        v: 2
+        data: encodedData,
+        v: "2.1"
       };
       
+      // Usamos POST. O keyvalue.xyz aceita POST para criar ou atualizar.
       const response = await fetch(`${API_BASE}/${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       
-      return response.ok;
+      if (!response.ok) {
+        if (response.status === 413) return { success: false, error: "DADOS MUITO PESADOS PARA A NUVEM." };
+        return { success: false, error: `ERRO DO SERVIDOR (${response.status})` };
+      }
+
+      return { success: true };
     } catch (e) {
-      console.warn("Cloud Sync: Erro ao enviar para nuvem", e);
-      return false;
+      console.error("Cloud Sync: Falha de rede", e);
+      return { success: false, error: "FALHA DE CONEXÃO COM O SERVIDOR." };
     }
   },
 
   async download(key: string): Promise<{data: any, timestamp: number} | null> {
     try {
-      // Adiciona timestamp para evitar cache do navegador
+      // nocache é vital para que o segundo computador veja a mudança do primeiro
       const response = await fetch(`${API_BASE}/${key}?nocache=${Date.now()}`, {
+        method: 'GET',
         cache: 'no-store'
       });
       
@@ -68,7 +103,6 @@ export const syncService = {
         timestamp: result.timestamp || 0
       };
     } catch (e) {
-      console.warn("Cloud Sync: Erro ao baixar da nuvem", e);
       return null;
     }
   }
